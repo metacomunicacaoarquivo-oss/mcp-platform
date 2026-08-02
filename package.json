@@ -1,0 +1,12 @@
+{
+  "name": "plataforma-mcp",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4.18.0"
+  }
+}
