@@ -1,5 +1,7 @@
 import { instagramDashboard } from "./routes/instagram.js";
 
+import { facebookOverview } from "./routes/facebook.js";
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -18,6 +20,10 @@ export default {
       return instagramDashboard(env);
     }
 
+if (url.pathname === "/facebook/overview") {
+  return facebookOverview(env);
+}
+    
     return Response.json(
       {
         success: false,
