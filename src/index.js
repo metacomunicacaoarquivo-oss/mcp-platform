@@ -1,6 +1,7 @@
 import { instagramDashboard } from "./routes/instagram.js";
 import { facebookOverview } from "./routes/facebook.js";
 import { metaBusinessOverview } from "./routes/metaBusiness.js";
+import { metaAdsCampaigns } from "./routes/metaAds.js";
 
 export default {
   async fetch(request, env) {
@@ -24,6 +25,9 @@ if (url.pathname === "/facebook/overview") {
 }
 if (url.pathname === "/meta-business/overview") {
   return metaBusinessOverview(env);
+}
+if (url.pathname === "/meta-ads/campaigns") {
+  return metaAdsCampaigns(env, request);
 }
     
     return Response.json(
