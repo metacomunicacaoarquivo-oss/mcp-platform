@@ -1,4 +1,4 @@
-const IBGE_POPULATION_URL =
+ const IBGE_POPULATION_URL =
   "https://apisidra.ibge.gov.br/values/t/6579/n6/all/v/9324/p/2025";
 
 function normalizeText(value = "") {
@@ -12,7 +12,12 @@ function normalizeText(value = "") {
 }
 
 function toNumber(value) {
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : 0;
+  }
+
   const normalized = String(value ?? "")
+    .replace(/\s/g, "")
     .replace(/\./g, "")
     .replace(",", ".");
 
@@ -21,8 +26,96 @@ function toNumber(value) {
   return Number.isFinite(number) ? number : 0;
 }
 
+function getMunicipalityCode(row = {}) {
+  return (
+    row.D1C ||
+    row.D2C ||
+    row.D3C ||
+    row.D4C ||
+    row.D5C ||
+    row.D6C ||
+    row.N6C ||
+    row.municipalityCode ||
+    null
+  );
+}
+
+function getMunicipalityName(row = {}) {
+  return (
+    row.D1N ||
+    row.D2N ||
+    row.D3N ||
+    row.D4N ||
+    row.D5N ||
+    row.D6N ||
+    row.N6N ||
+    row.municipalityName ||
+    null
+  );
+}
+
+function isMunicipalityCode(value) {
+  const digits = String(value || "")
+    .replace(/\D/g, "");
+
+  return digits.length === 7;
+}
+
+function findMunicipalityCode(row = {}) {
+  const directCode = getMunicipalityCode(row);
+
+  if (isMunicipalityCode(directCode)) {
+    return String(directCode).replace(/\D/g, "");
+  }
+
+  for (const [key, value] of Object.entries(row)) {
+    if (
+      key.endsWith("C") &&
+      isMunicipalityCode(value)
+    ) {
+      return String(value).replace(/\D/g, "");
+    }
+  }
+
+  return null;
+}
+
+function findMunicipalityName(row = {}) {
+  const directName = getMunicipalityName(row);
+
+  if (
+    directName &&
+    String(directName).trim() &&
+    !/^\d+$/.test(String(directName).trim())
+  ) {
+    return String(directName).trim();
+  }
+
+  for (const [key, value] of Object.entries(row)) {
+    if (
+      key.endsWith("N") &&
+      typeof value === "string" &&
+      value.trim() &&
+      !/^(município|municipio|nível territorial)$/i.test(
+        value.trim()
+      )
+    ) {
+      return value.trim();
+    }
+  }
+
+  return null;
+}
+
 export async function getIbgeMunicipalPopulations() {
-  const response = await fetch(IBGE_POPULATION_URL);
+  const response = await fetch(
+    IBGE_POPULATION_URL,
+    {
+      headers: {
+        Accept: "application/json"
+      }
+    }
+  );
 
   if (!response.ok) {
     const error = new Error(
@@ -44,15 +137,14 @@ export async function getIbgeMunicipalPopulations() {
     throw error;
   }
 
-  const dataRows = rows.slice(1);
-
-  return dataRows
+  return rows
+    .slice(1)
     .map((row) => {
       const municipalityCode =
-        row.D6C || row.N6C || null;
+        findMunicipalityCode(row);
 
       const municipalityName =
-        row.D6N || row.N6N || null;
+        findMunicipalityName(row);
 
       const population =
         toNumber(row.V);
@@ -60,11 +152,16 @@ export async function getIbgeMunicipalPopulations() {
       return {
         municipalityCode,
         municipalityName,
+
         normalizedName:
           normalizeText(municipalityName),
+
         population,
+
         referenceYear: 2025,
+
         source: "IBGE/SIDRA",
+
         table: "6579"
       };
     })
@@ -76,9 +173,19 @@ export async function getIbgeMunicipalPopulations() {
     );
 }
 
+export async function getTocantinsMunicipalPopulations() {
+  const municipalities =
+    await getIbgeMunicipalPopulations();
+
+  return municipalities.filter(
+    (municipality) =>
+      String(municipality.municipalityCode)
+        .startsWith("17")
+  );
+}
+
 export async function findIbgeMunicipality(
-  municipalityName,
-  stateCode = null
+  municipalityName
 ) {
   if (!municipalityName) {
     return null;
@@ -88,30 +195,25 @@ export async function findIbgeMunicipality(
     normalizeText(municipalityName);
 
   const municipalities =
-    await getIbgeMunicipalPopulations();
-
-  const matches = municipalities.filter(
-    (municipality) =>
-      municipality.normalizedName ===
-      normalizedSearch
-  );
-
-  if (matches.length === 0) {
-    return null;
-  }
-
-  if (!stateCode) {
-    return matches[0];
-  }
-
-  const normalizedStateCode =
-    String(stateCode).trim();
+    await getTocantinsMunicipalPopulations();
 
   return (
-    matches.find((municipality) =>
-      String(municipality.municipalityCode)
-        .startsWith(normalizedStateCode)
-    ) || matches[0]
+    municipalities.find(
+      (municipality) =>
+        municipality.normalizedName ===
+        normalizedSearch
+    ) || null
+  );
+}
+
+export async function getTocantinsPopulation() {
+  const municipalities =
+    await getTocantinsMunicipalPopulations();
+
+  return municipalities.reduce(
+    (total, municipality) =>
+      total + toNumber(municipality.population),
+    0
   );
 }
 
@@ -119,12 +221,14 @@ export function calculatePopulationCoverage(
   reach,
   population
 ) {
-  const normalizedReach = Number(reach);
-  const normalizedPopulation = Number(population);
+  const normalizedReach =
+    toNumber(reach);
+
+  const normalizedPopulation =
+    toNumber(population);
 
   if (
-    !Number.isFinite(normalizedReach) ||
-    !Number.isFinite(normalizedPopulation) ||
+    normalizedReach < 0 ||
     normalizedPopulation <= 0
   ) {
     return null;
