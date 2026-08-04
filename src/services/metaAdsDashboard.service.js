@@ -404,83 +404,171 @@ function createGeographicData(
   };
 }
 
-function createCreativeByAdIdMap(
+function createCreativeMaps(
   creatives = []
 ) {
   const creativeByAdId = new Map();
+  const creativeByCreativeId = new Map();
 
   for (const creative of creatives) {
+    const normalizedCreative = {
+      id:
+        creative.id || null,
+
+      name:
+        creative.name || null,
+
+      thumbnailUrl:
+        creative.thumbnailUrl ||
+        creative.thumbnail_url ||
+        null,
+
+      imageUrl:
+        creative.imageUrl ||
+        creative.image_url ||
+        null,
+
+      effectiveObjectStoryId:
+        creative.effectiveObjectStoryId ||
+        creative.effective_object_story_id ||
+        null,
+
+      objectStorySpec:
+        creative.objectStorySpec ||
+        creative.object_story_spec ||
+        null,
+
+      assetFeedSpec:
+        creative.assetFeedSpec ||
+        creative.asset_feed_spec ||
+        null
+    };
+
+    if (normalizedCreative.id) {
+      creativeByCreativeId.set(
+        String(normalizedCreative.id),
+        normalizedCreative
+      );
+    }
+
     for (const linkedAd of creative.ads || []) {
-      creativeByAdId.set(linkedAd.id, {
-        id: creative.id,
-        name: creative.name,
+      if (!linkedAd?.id) {
+        continue;
+      }
 
-        thumbnailUrl:
-          creative.thumbnailUrl,
-
-        imageUrl:
-          creative.imageUrl,
-
-        effectiveObjectStoryId:
-          creative.effectiveObjectStoryId,
-
-        objectStorySpec:
-          creative.objectStorySpec,
-
-        assetFeedSpec:
-          creative.assetFeedSpec
-      });
+      creativeByAdId.set(
+        String(linkedAd.id),
+        normalizedCreative
+      );
     }
   }
 
-  return creativeByAdId;
+  return {
+    creativeByAdId,
+    creativeByCreativeId
+  };
 }
 
 function createAdsByAdSetIdMap(
   ads = [],
-  creativeByAdId
+  creativeMaps
 ) {
   const adsByAdSetId = new Map();
 
+  const {
+    creativeByAdId,
+    creativeByCreativeId
+  } = creativeMaps;
+
   for (const ad of ads) {
+    const adId =
+      String(ad.id || "");
+
+    const creativeId =
+      String(
+        ad.creative?.id ||
+        ad.creative_id ||
+        ""
+      );
+
     const creative =
-      creativeByAdId.get(ad.id) || null;
+      creativeByAdId.get(adId) ||
+      creativeByCreativeId.get(
+        creativeId
+      ) ||
+      ad.creative ||
+      null;
+
+    const coverUrl =
+      ad.coverUrl ||
+      ad.cover_url ||
+      ad.thumbnailUrl ||
+      ad.thumbnail_url ||
+      ad.imageUrl ||
+      ad.image_url ||
+      creative?.thumbnailUrl ||
+      creative?.thumbnail_url ||
+      creative?.imageUrl ||
+      creative?.image_url ||
+      null;
 
     const normalizedAd = {
       ...ad,
 
       creative,
 
-      coverUrl:
-        creative?.thumbnailUrl ||
-        creative?.imageUrl ||
-        null
+      coverUrl
     };
 
-    if (!adsByAdSetId.has(ad.adset_id)) {
+    const adSetId =
+      String(
+        ad.adset_id ||
+        ad.adSetId ||
+        ""
+      );
+
+    if (!adSetId) {
+      continue;
+    }
+
+    if (!adsByAdSetId.has(adSetId)) {
       adsByAdSetId.set(
-        ad.adset_id,
+        adSetId,
         []
       );
     }
 
     adsByAdSetId
-      .get(ad.adset_id)
+      .get(adSetId)
       .push(normalizedAd);
   }
 
   return adsByAdSetId;
 }
 
-function createAdSetsByCampaignIdMap(
+      function createAdSetsByCampaignIdMap(
   adSets = [],
   adsByAdSetId
 ) {
   const adSetsByCampaignId = new Map();
 
   for (const adSet of adSets) {
+    const adSetId =
+      String(adSet.id || "");
+
+    const campaignId =
+      String(
+        adSet.campaign_id ||
+        adSet.campaignId ||
+        ""
+      );
+
+    if (!adSetId || !campaignId) {
+      continue;
+    }
+
     const ads =
-      adsByAdSetId.get(adSet.id) || [];
+      adsByAdSetId.get(adSetId) || [];
 
     const normalizedAdSet = {
       ...adSet,
@@ -506,17 +594,17 @@ function createAdSetsByCampaignIdMap(
 
     if (
       !adSetsByCampaignId.has(
-        adSet.campaign_id
+        campaignId
       )
     ) {
       adSetsByCampaignId.set(
-        adSet.campaign_id,
+        campaignId,
         []
       );
     }
 
     adSetsByCampaignId
-      .get(adSet.campaign_id)
+      .get(campaignId)
       .push(normalizedAdSet);
   }
 
@@ -530,7 +618,9 @@ function buildCampaigns({
 }) {
   return campaigns.map((campaign) => {
     const adSets =
-      adSetsByCampaignId.get(campaign.id) || [];
+      adSetsByCampaignId.get(
+        String(campaign.id)
+      ) || [];
 
     const allAds = adSets.flatMap(
       (adSet) => adSet.ads || []
@@ -540,13 +630,28 @@ function buildCampaigns({
       (ad) => Boolean(ad.coverUrl)
     );
 
+    const deliveredAdsWithCover =
+      adsWithCover.filter(
+        (ad) =>
+          ad.delivery?.deliveredInPeriod
+      );
+
+    const coverCandidates =
+      deliveredAdsWithCover.length
+        ? deliveredAdsWithCover
+        : adsWithCover;
+
     const mainAd =
-      adsWithCover
+      coverCandidates
         .slice()
         .sort(
           (adA, adB) =>
-            toNumber(adB.delivery?.reach) -
-            toNumber(adA.delivery?.reach)
+            toNumber(
+              adB.delivery?.reach
+            ) -
+            toNumber(
+              adA.delivery?.reach
+            )
         )[0] || null;
 
     const performance =
@@ -580,7 +685,9 @@ function buildCampaigns({
               mainAd.coverUrl,
 
             selectionRule:
-              "Anúncio com maior alcance no período"
+              deliveredAdsWithCover.length
+                ? "Anúncio entregue com maior alcance no período"
+                : "Primeiro anúncio com imagem disponível"
           }
         : null,
 
@@ -754,15 +861,15 @@ export async function getMetaAdsDashboard(
       ibgeMunicipalities
     );
 
-  const creativeByAdId =
-    createCreativeByAdIdMap(
+    const creativeMaps =
+    createCreativeMaps(
       creativesData.creatives || []
     );
 
   const adsByAdSetId =
     createAdsByAdSetIdMap(
       adsData.ads || [],
-      creativeByAdId
+      creativeMaps
     );
 
   const adSetsByCampaignId =
