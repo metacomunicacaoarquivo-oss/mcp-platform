@@ -2,6 +2,7 @@ import { getMetaAdsCampaigns } from "./metaAds.service.js";
 import { getMetaAdSets } from "./metaAdSets.service.js";
 import { getMetaAdsItems } from "./metaAdsItems.service.js";
 import { getMetaCreatives } from "./metaCreatives.service.js";
+import { generateMetaAdsRanking } from "./metaRanking.service.js";
 
 export async function getMetaAdsDashboard(
   accessToken,
@@ -70,7 +71,9 @@ export async function getMetaAdsDashboard(
 
     const normalizedAd = {
       ...ad,
+
       creative,
+
       coverUrl:
         creative?.thumbnailUrl ||
         creative?.imageUrl ||
@@ -175,6 +178,44 @@ export async function getMetaAdsDashboard(
     };
   });
 
+  const rankingResult =
+    generateMetaAdsRanking(campaigns);
+
+  const campaignsWithRanking =
+    rankingResult.campaigns;
+
+  const totalSpend =
+    campaignsWithRanking.reduce(
+      (total, campaign) =>
+        total +
+        Number(campaign.performance?.spend || 0),
+      0
+    );
+
+  const totalReach =
+    campaignsWithRanking.reduce(
+      (total, campaign) =>
+        total +
+        Number(campaign.performance?.reach || 0),
+      0
+    );
+
+  const totalViews =
+    campaignsWithRanking.reduce(
+      (total, campaign) =>
+        total +
+        Number(campaign.performance?.views || 0),
+      0
+    );
+
+  const totalClicks =
+    campaignsWithRanking.reduce(
+      (total, campaign) =>
+        total +
+        Number(campaign.performance?.clicks || 0),
+      0
+    );
+
   return {
     period: {
       since,
@@ -183,7 +224,7 @@ export async function getMetaAdsDashboard(
 
     summary: {
       totalCampaigns:
-        campaigns.length,
+        campaignsWithRanking.length,
 
       totalAdSets:
         adSetsData.summary?.totalAdSets || 0,
@@ -192,16 +233,31 @@ export async function getMetaAdsDashboard(
         adsData.summary?.totalAds || 0,
 
       totalCreatives:
-        creativesData.summary
-          ?.totalCreatives || 0,
+        creativesData.summary?.totalCreatives || 0,
 
       campaignsWithCover:
-        campaigns.filter(
+        campaignsWithRanking.filter(
           (campaign) =>
             Boolean(campaign.cover?.url)
-        ).length
+        ).length,
+
+      totalSpend:
+        Number(totalSpend.toFixed(2)),
+
+      totalReach:
+        Math.round(totalReach),
+
+      totalViews:
+        Math.round(totalViews),
+
+      totalClicks:
+        Math.round(totalClicks)
     },
 
-    campaigns
+    ranking:
+      rankingResult.ranking,
+
+    campaigns:
+      campaignsWithRanking
   };
 }
