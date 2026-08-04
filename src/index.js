@@ -5,6 +5,7 @@ import { metaAdsCampaigns } from "./routes/metaAds.js";
 import { metaAdSets } from "./routes/metaAdSets.js";
 import { metaAdsItems } from "./routes/metaAdsItems.js";
 import { metaCreatives } from "./routes/metaCreatives.js";
+import { metaAdsDashboard } from "./routes/metaAdsDashboard.js";
 
 export default {
   async fetch(request, env) {
@@ -46,6 +47,10 @@ export default {
 
     if (url.pathname === "/meta-ads/creatives") {
       return metaCreatives(env, request);
+    }
+
+    if (url.pathname === "/meta-ads/dashboard") {
+      return metaAdsDashboard(env, request);
     }
 
     return Response.json(
