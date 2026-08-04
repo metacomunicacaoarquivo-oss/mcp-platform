@@ -25,7 +25,6 @@ export async function metaAdsItems(env, request) {
       type: "Ads",
       data
     });
-
   } catch (error) {
     return Response.json(
       {
