@@ -692,6 +692,165 @@ export function metaAdsPage() {
   font-size: 9px;
 }
 
+.ranking-list {
+  display: grid;
+  gap: 14px;
+}
+
+.ranking-card {
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-medium);
+}
+
+.ranking-card-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.ranking-position {
+  min-width: 42px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #ea580c;
+  font-size: 12px;
+  font-weight: 900;
+  background: #ffedd5;
+  border-radius: 8px;
+}
+
+.ranking-campaign {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ranking-thumbnail {
+  width: 58px;
+  height: 58px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.ranking-thumbnail img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.ranking-thumbnail-placeholder {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  color: var(--text-light);
+  font-size: 18px;
+}
+
+.ranking-campaign-text {
+  min-width: 0;
+}
+
+.ranking-campaign-text strong {
+  display: block;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ranking-campaign-text span {
+  display: block;
+  margin-top: 5px;
+  color: var(--text-soft);
+  font-size: 9px;
+}
+
+.ranking-metrics {
+  display: grid;
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.ranking-metric {
+  min-height: 68px;
+  display: grid;
+  place-content: center;
+  padding: 10px;
+  text-align: center;
+  background: var(--surface-soft);
+  border-radius: 9px;
+}
+
+.ranking-metric strong {
+  color: var(--text);
+  font-size: 14px;
+}
+
+.ranking-metric span {
+  margin-top: 4px;
+  color: var(--text-soft);
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.ranking-coverage strong {
+  color: #ea580c;
+}
+
+.ranking-population-note {
+  margin-top: 10px;
+  color: var(--text-light);
+  font-size: 8px;
+  line-height: 1.5;
+}
+
+@media (max-width: 780px) {
+  .ranking-metrics {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .ranking-card-header {
+    align-items: flex-start;
+  }
+
+  .ranking-campaign {
+    align-items: flex-start;
+  }
+
+  .ranking-thumbnail {
+    width: 50px;
+    height: 50px;
+  }
+
+  .ranking-campaign-text strong {
+    white-space: normal;
+  }
+
+  .ranking-metrics {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+}
+
     .status-badge {
       display: inline-flex;
       align-items: center;
@@ -1752,63 +1911,266 @@ export function metaAdsPage() {
     }
 
     function renderRanking(ranking) {
-      const items =
-        ranking.reach ||
-        ranking.alcance ||
-        [];
+  const items =
+    ranking.reach ||
+    ranking.alcance ||
+    [];
 
-      if (!items.length) {
-        rankingTable.innerHTML =
-          '<div class="empty-state">' +
-            "<div>" +
-              "<strong>Ranking indisponível</strong>" +
-              "<span>Não há dados para o período.</span>" +
-            "</div>" +
-          "</div>";
+  if (!items.length) {
+    rankingTable.innerHTML =
+      '<div class="empty-state">' +
+        "<div>" +
+          "<strong>Ranking indisponível</strong>" +
+          "<span>Não há dados para o período.</span>" +
+        "</div>" +
+      "</div>";
 
-        return;
-      }
+    return;
+  }
 
-      rankingTable.innerHTML =
-        "<table>" +
-          "<thead>" +
-            "<tr>" +
-              "<th>Posição</th>" +
-              "<th>Campanha</th>" +
-              "<th>Alcance</th>" +
-            "</tr>" +
-          "</thead>" +
-          "<tbody>" +
-            items
-              .slice(0, 20)
-              .map(function (item, index) {
-                return (
-                  "<tr>" +
-                    "<td>" +
-                      (index + 1) +
-                    "</td>" +
+  const rankingItems =
+    items
+      .map(function (item) {
+        const campaign =
+          state.campaigns.find(
+            function (campaignItem) {
+              return (
+                String(campaignItem.id) ===
+                String(item.campaignId)
+              );
+            }
+          );
 
-                    '<td class="campaign-cell">' +
-                      "<strong>" +
-                        escapeHtml(
-                          item.campaignName ||
-                          "Campanha"
-                        ) +
-                      "</strong>" +
-                    "</td>" +
+        if (!campaign) {
+          return {
+            position: item.position,
+            campaignName:
+              item.campaignName ||
+              "Campanha",
+            reach: Number(item.value || 0),
+            views: 0,
+            engagement: 0,
+            population: 0,
+            coveragePercentage: 0,
+            scope: "Estadual",
+            location: "Tocantins",
+            coverUrl: null
+          };
+        }
 
-                    "<td>" +
-                      formatNumber(
-                        item.value
+        const performance =
+          campaign.performance || {};
+
+        const population =
+          Number(
+            campaign.ibge?.population || 0
+          );
+
+        const reach =
+          Number(
+            performance.reach ??
+            item.value ??
+            0
+          );
+
+        const calculatedCoverage =
+          population > 0
+            ? (reach / population) * 100
+            : 0;
+
+        const coverageFromApi =
+          Number(
+            campaign.ibge
+              ?.coveragePercentage
+          );
+
+        const coveragePercentage =
+          Number.isFinite(coverageFromApi) &&
+          coverageFromApi > 0
+            ? coverageFromApi
+            : calculatedCoverage;
+
+        const isMunicipal =
+          campaign.geographicScope?.type ===
+          "municipal";
+
+        const coverUrl =
+          campaign.cover?.url ||
+          campaign.adSets?.[0]
+            ?.ads?.[0]?.coverUrl ||
+          campaign.adSets?.[0]
+            ?.ads?.[0]
+            ?.creative?.thumbnailUrl ||
+          null;
+
+        return {
+          position: item.position,
+          campaignName:
+            campaign.name ||
+            item.campaignName ||
+            "Campanha",
+          reach,
+          views:
+            Number(
+              performance.views || 0
+            ),
+          engagement:
+            Number(
+              performance.engagement || 0
+            ),
+          population,
+          coveragePercentage,
+          scope:
+            isMunicipal
+              ? "Municipal"
+              : "Estadual",
+          location:
+            isMunicipal
+              ? (
+                  campaign.geographicScope
+                    ?.municipality ||
+                  campaign.ibge
+                    ?.municipality ||
+                  "Município"
+                )
+              : "Tocantins",
+          coverUrl
+        };
+      })
+      .slice(0, 10);
+
+  rankingTable.innerHTML =
+    '<div class="ranking-list">' +
+      rankingItems
+        .map(function (item, index) {
+          const position =
+            item.position ||
+            index + 1;
+
+          const coverageText =
+            item.population > 0
+              ? formatPercentage(
+                  item.coveragePercentage
+                )
+              : "Não disponível";
+
+          return (
+            '<article class="ranking-card">' +
+
+              '<div class="ranking-card-header">' +
+
+                '<div class="ranking-position">' +
+                  "#" +
+                  position +
+                "</div>" +
+
+                '<div class="ranking-campaign">' +
+
+                  (
+                    item.coverUrl
+                      ? (
+                          '<div class="ranking-thumbnail">' +
+                            '<img' +
+                              ' src="' +
+                              escapeHtml(
+                                item.coverUrl
+                              ) +
+                              '"' +
+                              ' alt="Imagem da campanha"' +
+                              ' loading="lazy"' +
+                            ">" +
+                          "</div>"
+                        )
+                      : (
+                          '<div class="ranking-thumbnail">' +
+                            '<div class="ranking-thumbnail-placeholder">' +
+                              "◉" +
+                            "</div>" +
+                          "</div>"
+                        )
+                  ) +
+
+                  '<div class="ranking-campaign-text">' +
+                    "<strong>" +
+                      escapeHtml(
+                        item.campaignName
                       ) +
-                    "</td>" +
-                  "</tr>"
-                );
-              })
-              .join("") +
-          "</tbody>" +
-        "</table>";
-    }
+                    "</strong>" +
+
+                    "<span>" +
+                      escapeHtml(
+                        item.scope +
+                        " • " +
+                        item.location
+                      ) +
+                    "</span>" +
+                  "</div>" +
+
+                "</div>" +
+
+              "</div>" +
+
+              '<div class="ranking-metrics">' +
+
+                '<div class="ranking-metric">' +
+                  "<strong>" +
+                    formatNumber(
+                      item.reach
+                    ) +
+                  "</strong>" +
+                  "<span>Alcance</span>" +
+                "</div>" +
+
+                '<div class="ranking-metric">' +
+                  "<strong>" +
+                    formatNumber(
+                      item.views
+                    ) +
+                  "</strong>" +
+                  "<span>Visualizações</span>" +
+                "</div>" +
+
+                '<div class="ranking-metric">' +
+                  "<strong>" +
+                    formatNumber(
+                      item.engagement
+                    ) +
+                  "</strong>" +
+                  "<span>Engajamentos</span>" +
+                "</div>" +
+
+                '<div class="ranking-metric ranking-coverage">' +
+                  "<strong>" +
+                    escapeHtml(
+                      coverageText
+                    ) +
+                  "</strong>" +
+                  "<span>População atingida</span>" +
+                "</div>" +
+
+              "</div>" +
+
+              '<div class="ranking-population-note">' +
+                (
+                  item.population > 0
+                    ? (
+                        "Base populacional do IBGE: " +
+                        formatNumber(
+                          item.population
+                        ) +
+                        ". "
+                      )
+                    : ""
+                ) +
+                "O alcance representa contas únicas estimadas pela Meta." +
+              "</div>" +
+
+            "</article>"
+          );
+        })
+        .join("") +
+    "</div>";
+}
 
     function renderMunicipalities(campaigns) {
       const municipalCampaigns =
