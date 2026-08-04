@@ -1,137 +1,44 @@
-function createGeographicData(
-  campaignName,
-  reach,
-  tocantinsPopulationData
-) {
-  const municipality =
-    findMunicipalityInCampaign(
-      campaignName,
-      tocantinsPopulationData
-    );
+import { getMetaAdsDashboard } from "../services/metaAdsDashboard.service.js";
 
-  /*
-   * Quando um município do Tocantins aparece
-   * no nome da campanha, ela é municipal.
-   */
-  if (municipality) {
-    const population = Math.round(
-      toNumber(municipality.population)
-    );
+export async function metaAdsDashboard(env, request) {
+  try {
+    const url = new URL(request.url);
 
-    return {
-      geographicScope: {
-        type: "municipal",
-        label: "Municipal",
-        municipality:
-          municipality.municipalityName,
-        municipalityCode:
-          municipality.municipalityCode,
-        state: "Tocantins",
-        stateCode: "TO"
-      },
+    const since = url.searchParams.get("since");
+    const until = url.searchParams.get("until");
 
-      ibge: {
-        scope: "municipal",
-
-        municipality:
-          municipality.municipalityName,
-
-        municipalityCode:
-          municipality.municipalityCode,
-
-        state: "Tocantins",
-
-        stateCode: "TO",
-
-        population,
-
-        reach: Math.round(
-          toNumber(reach)
-        ),
-
-        coveragePercentage:
-          calculatePopulationCoverage(
-            reach,
-            population
-          ),
-
-        coverageLabel:
-          "Cobertura estimada da população",
-
-        referenceYear:
-          municipality.referenceYear || 2025,
-
-        source:
-          municipality.source ||
-          "IBGE/SIDRA",
-
-        table:
-          municipality.table || "6579",
-
-        detectionRule:
-          "Município identificado no nome da campanha",
-
-        warning:
-          "O alcance da Meta representa contas únicas estimadas e não confirma residência individual."
+    const data = await getMetaAdsDashboard(
+      env.META_ACCESS_TOKEN,
+      {
+        since,
+        until
       }
-    };
+    );
+
+    return Response.json({
+      success: true,
+      module: "Meta Ads",
+      type: "Dashboard",
+      data
+    });
+  } catch (error) {
+    console.error("Erro no Dashboard Meta Ads:", {
+      message: error?.message,
+      stack: error?.stack,
+      meta: error?.meta
+    });
+
+    return Response.json(
+      {
+        success: false,
+        error: error?.message || "Erro desconhecido",
+        errorName: error?.name || null,
+        stack: error?.stack || null,
+        details: error?.meta ?? null
+      },
+      {
+        status: error?.status ?? 500
+      }
+    );
   }
-
-  /*
-   * Quando nenhum município aparece no nome,
-   * a campanha é considerada estadual.
-   */
-  const statePopulation =
-    tocantinsPopulationData.statePopulation;
-
-  return {
-    geographicScope: {
-      type: "state",
-      label: "Estadual",
-      municipality: null,
-      municipalityCode: null,
-      state: "Tocantins",
-      stateCode: "TO"
-    },
-
-    ibge: {
-      scope: "state",
-
-      municipality: null,
-
-      municipalityCode: null,
-
-      state: "Tocantins",
-
-      stateCode: "TO",
-
-      population:
-        statePopulation,
-
-      reach: Math.round(
-        toNumber(reach)
-      ),
-
-      coveragePercentage:
-        calculatePopulationCoverage(
-          reach,
-          statePopulation
-        ),
-
-      coverageLabel:
-        "Cobertura estimada da população estadual",
-
-      referenceYear: 2025,
-
-      source: "IBGE/SIDRA",
-
-      table: "6579",
-
-      detectionRule:
-        "Nenhum município foi identificado no nome da campanha; campanha classificada como estadual",
-
-      warning:
-        "O alcance da Meta representa contas únicas estimadas e não confirma residência individual."
-    }
-  };
 }
