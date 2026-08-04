@@ -6,6 +6,7 @@ import { metaAdSets } from "./routes/metaAdSets.js";
 import { metaAdsItems } from "./routes/metaAdsItems.js";
 import { metaCreatives } from "./routes/metaCreatives.js";
 import { metaAdsDashboard } from "./routes/metaAdsDashboard.js";
+import { dashboardPage } from "./routes/dashboardPage.js";
 
 export default {
   async fetch(request, env) {
@@ -19,6 +20,10 @@ export default {
         version: "2.0.0",
         timestamp: new Date().toISOString()
       });
+    }
+
+    if (url.pathname === "/dashboard") {
+      return dashboardPage();
     }
 
     if (url.pathname === "/instagram/dashboard") {
