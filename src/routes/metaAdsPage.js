@@ -513,13 +513,15 @@ export function metaAdsPage() {
     }
 
     .metric-card {
-      min-height: 132px;
-      padding: 18px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-large);
-      box-shadow: var(--shadow);
-    }
+  min-width: 0;
+  min-height: 132px;
+  overflow: hidden;
+  padding: 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-large);
+  box-shadow: var(--shadow);
+}
 
     .metric-label {
       display: block;
@@ -529,11 +531,15 @@ export function metaAdsPage() {
     }
 
     .metric-value {
-      display: block;
-      margin-top: 17px;
-      font-size: clamp(21px, 2.2vw, 28px);
-      letter-spacing: -0.04em;
-    }
+  display: block;
+  width: 100%;
+  min-width: 0;
+  margin-top: 17px;
+  font-size: clamp(17px, 1.55vw, 26px);
+  line-height: 1.15;
+  letter-spacing: -0.04em;
+  white-space: nowrap;
+}
 
     .metric-note {
       display: block;
