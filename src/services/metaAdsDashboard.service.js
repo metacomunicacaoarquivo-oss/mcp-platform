@@ -4,6 +4,170 @@ import { getMetaAdsItems } from "./metaAdsItems.service.js";
 import { getMetaCreatives } from "./metaCreatives.service.js";
 import { generateMetaAdsRanking } from "./metaRanking.service.js";
 
+function toNumber(value) {
+  const number = Number(value);
+
+  return Number.isFinite(number) ? number : 0;
+}
+
+function roundMoney(value) {
+  return Number(toNumber(value).toFixed(2));
+}
+
+function roundMetric(value, decimals = 4) {
+  return Number(toNumber(value).toFixed(decimals));
+}
+
+function calculateCampaignPerformance(adSets = []) {
+  const ads = adSets.flatMap(
+    (adSet) => adSet.ads || []
+  );
+
+  const deliveredAds = ads.filter(
+    (ad) => ad.delivery?.deliveredInPeriod
+  );
+
+  const totals = deliveredAds.reduce(
+    (result, ad) => {
+      const delivery = ad.delivery || {};
+
+      result.spend += toNumber(delivery.spend);
+      result.reach += toNumber(delivery.reach);
+      result.impressions += toNumber(
+        delivery.impressions
+      );
+      result.clicks += toNumber(delivery.clicks);
+
+      result.engagement += toNumber(
+        delivery.engagement
+      );
+
+      result.videoPlays += toNumber(
+        delivery.videoPlays
+      );
+
+      result.videoViews3s += toNumber(
+        delivery.videoViews3s
+      );
+
+      result.videoViews15s += toNumber(
+        delivery.videoViews15s
+      );
+
+      result.videoViews95 += toNumber(
+        delivery.videoViews95
+      );
+
+      result.videoViews100 += toNumber(
+        delivery.videoViews100
+      );
+
+      result.thruplay += toNumber(
+        delivery.thruplay
+      );
+
+      return result;
+    },
+    {
+      spend: 0,
+      reach: 0,
+      impressions: 0,
+      clicks: 0,
+      engagement: 0,
+      videoPlays: 0,
+      videoViews3s: 0,
+      videoViews15s: 0,
+      videoViews95: 0,
+      videoViews100: 0,
+      thruplay: 0
+    }
+  );
+
+  const ctr =
+    totals.impressions > 0
+      ? (totals.clicks / totals.impressions) * 100
+      : 0;
+
+  const cpc =
+    totals.clicks > 0
+      ? totals.spend / totals.clicks
+      : 0;
+
+  const cpm =
+    totals.impressions > 0
+      ? (totals.spend / totals.impressions) * 1000
+      : 0;
+
+  const costPerEngagement =
+    totals.engagement > 0
+      ? totals.spend / totals.engagement
+      : 0;
+
+  const costPerVideoView3s =
+    totals.videoViews3s > 0
+      ? totals.spend / totals.videoViews3s
+      : 0;
+
+  const costPerThruplay =
+    totals.thruplay > 0
+      ? totals.spend / totals.thruplay
+      : 0;
+
+  return {
+    spend: roundMoney(totals.spend),
+
+    reach: Math.round(totals.reach),
+
+    impressions:
+      Math.round(totals.impressions),
+
+    views:
+      Math.round(totals.impressions),
+
+    clicks:
+      Math.round(totals.clicks),
+
+    ctr:
+      roundMetric(ctr),
+
+    cpc:
+      roundMetric(cpc),
+
+    cpm:
+      roundMetric(cpm),
+
+    engagement:
+      Math.round(totals.engagement),
+
+    costPerEngagement:
+      roundMetric(costPerEngagement),
+
+    videoPlays:
+      Math.round(totals.videoPlays),
+
+    videoViews3s:
+      Math.round(totals.videoViews3s),
+
+    costPerVideoView3s:
+      roundMetric(costPerVideoView3s),
+
+    videoViews15s:
+      Math.round(totals.videoViews15s),
+
+    videoViews95:
+      Math.round(totals.videoViews95),
+
+    videoViews100:
+      Math.round(totals.videoViews100),
+
+    thruplay:
+      Math.round(totals.thruplay),
+
+    costPerThruplay:
+      roundMetric(costPerThruplay)
+  };
+}
+
 export async function getMetaAdsDashboard(
   accessToken,
   {
@@ -44,6 +208,9 @@ export async function getMetaAdsDashboard(
     getMetaCreatives(accessToken)
   ]);
 
+  /*
+   * Relaciona cada anúncio ao seu criativo.
+   */
   const creativeByAdId = new Map();
 
   for (const creative of creativesData.creatives || []) {
@@ -51,8 +218,10 @@ export async function getMetaAdsDashboard(
       creativeByAdId.set(linkedAd.id, {
         id: creative.id,
         name: creative.name,
-        thumbnailUrl: creative.thumbnailUrl,
-        imageUrl: creative.imageUrl,
+        thumbnailUrl:
+          creative.thumbnailUrl,
+        imageUrl:
+          creative.imageUrl,
         effectiveObjectStoryId:
           creative.effectiveObjectStoryId,
         objectStorySpec:
@@ -63,6 +232,9 @@ export async function getMetaAdsDashboard(
     }
   }
 
+  /*
+   * Agrupa os anúncios pelo conjunto de anúncios.
+   */
   const adsByAdSetId = new Map();
 
   for (const ad of adsData.ads || []) {
@@ -89,6 +261,9 @@ export async function getMetaAdsDashboard(
       .push(normalizedAd);
   }
 
+  /*
+   * Agrupa os conjuntos pela campanha.
+   */
   const adSetsByCampaignId = new Map();
 
   for (const adSet of adSetsData.adSets || []) {
@@ -102,7 +277,8 @@ export async function getMetaAdsDashboard(
         totalAds: ads.length,
 
         deliveredAds: ads.filter(
-          (ad) => ad.delivery?.deliveredInPeriod
+          (ad) =>
+            ad.delivery?.deliveredInPeriod
         ).length,
 
         adsWithCover: ads.filter(
@@ -125,6 +301,10 @@ export async function getMetaAdsDashboard(
       .push(normalizedAdSet);
   }
 
+  /*
+   * Monta cada campanha com conjuntos, anúncios,
+   * criativos, capas e métricas consolidadas.
+   */
   const campaigns = (
     campaignsData.campaigns || []
   ).map((campaign) => {
@@ -143,9 +323,9 @@ export async function getMetaAdsDashboard(
       adsWithCover
         .slice()
         .sort(
-          (a, b) =>
-            Number(b.delivery?.reach || 0) -
-            Number(a.delivery?.reach || 0)
+          (adA, adB) =>
+            toNumber(adB.delivery?.reach) -
+            toNumber(adA.delivery?.reach)
         )[0] || null;
 
     return {
@@ -161,9 +341,15 @@ export async function getMetaAdsDashboard(
           }
         : null,
 
+      performance:
+        calculateCampaignPerformance(adSets),
+
       summary: {
-        totalAdSets: adSets.length,
-        totalAds: allAds.length,
+        totalAdSets:
+          adSets.length,
+
+        totalAds:
+          allAds.length,
 
         deliveredAds: allAds.filter(
           (ad) =>
@@ -178,43 +364,128 @@ export async function getMetaAdsDashboard(
     };
   });
 
+  /*
+   * Gera o ranking das campanhas.
+   */
   const rankingResult =
     generateMetaAdsRanking(campaigns);
 
-  const campaignsWithRanking =
-    rankingResult.campaigns;
+  const rankingByCampaignId = new Map(
+    (rankingResult.campaigns || []).map(
+      (campaign) => [
+        campaign.id,
+        campaign.ranking || {}
+      ]
+    )
+  );
 
-  const totalSpend =
-    campaignsWithRanking.reduce(
-      (total, campaign) =>
-        total +
-        Number(campaign.performance?.spend || 0),
-      0
-    );
+  const campaignsWithRanking = campaigns.map(
+    (campaign) => ({
+      ...campaign,
 
-  const totalReach =
-    campaignsWithRanking.reduce(
-      (total, campaign) =>
-        total +
-        Number(campaign.performance?.reach || 0),
-      0
-    );
+      ranking:
+        rankingByCampaignId.get(campaign.id) || {}
+    })
+  );
 
-  const totalViews =
-    campaignsWithRanking.reduce(
-      (total, campaign) =>
-        total +
-        Number(campaign.performance?.views || 0),
-      0
-    );
+  /*
+   * Consolida as métricas gerais.
+   */
+  const totals = campaignsWithRanking.reduce(
+    (result, campaign) => {
+      const performance =
+        campaign.performance || {};
 
-  const totalClicks =
-    campaignsWithRanking.reduce(
-      (total, campaign) =>
-        total +
-        Number(campaign.performance?.clicks || 0),
-      0
-    );
+      result.spend += toNumber(
+        performance.spend
+      );
+
+      result.reach += toNumber(
+        performance.reach
+      );
+
+      result.views += toNumber(
+        performance.views
+      );
+
+      result.impressions += toNumber(
+        performance.impressions
+      );
+
+      result.clicks += toNumber(
+        performance.clicks
+      );
+
+      result.engagement += toNumber(
+        performance.engagement
+      );
+
+      result.videoPlays += toNumber(
+        performance.videoPlays
+      );
+
+      result.videoViews3s += toNumber(
+        performance.videoViews3s
+      );
+
+      result.videoViews15s += toNumber(
+        performance.videoViews15s
+      );
+
+      result.videoViews95 += toNumber(
+        performance.videoViews95
+      );
+
+      result.videoViews100 += toNumber(
+        performance.videoViews100
+      );
+
+      result.thruplay += toNumber(
+        performance.thruplay
+      );
+
+      return result;
+    },
+    {
+      spend: 0,
+      reach: 0,
+      views: 0,
+      impressions: 0,
+      clicks: 0,
+      engagement: 0,
+      videoPlays: 0,
+      videoViews3s: 0,
+      videoViews15s: 0,
+      videoViews95: 0,
+      videoViews100: 0,
+      thruplay: 0
+    }
+  );
+
+  const averageCtr =
+    totals.impressions > 0
+      ? (totals.clicks / totals.impressions) * 100
+      : 0;
+
+  const averageCpc =
+    totals.clicks > 0
+      ? totals.spend / totals.clicks
+      : 0;
+
+  const averageCpm =
+    totals.impressions > 0
+      ? (totals.spend / totals.impressions) * 1000
+      : 0;
+
+  const costPerEngagement =
+    totals.engagement > 0
+      ? totals.spend / totals.engagement
+      : 0;
+
+  const costPerThruplay =
+    totals.thruplay > 0
+      ? totals.spend / totals.thruplay
+      : 0;
 
   return {
     period: {
@@ -242,16 +513,55 @@ export async function getMetaAdsDashboard(
         ).length,
 
       totalSpend:
-        Number(totalSpend.toFixed(2)),
+        roundMoney(totals.spend),
 
       totalReach:
-        Math.round(totalReach),
+        Math.round(totals.reach),
 
       totalViews:
-        Math.round(totalViews),
+        Math.round(totals.views),
+
+      totalImpressions:
+        Math.round(totals.impressions),
 
       totalClicks:
-        Math.round(totalClicks)
+        Math.round(totals.clicks),
+
+      totalEngagement:
+        Math.round(totals.engagement),
+
+      costPerEngagement:
+        roundMetric(costPerEngagement),
+
+      totalVideoPlays:
+        Math.round(totals.videoPlays),
+
+      totalVideoViews3s:
+        Math.round(totals.videoViews3s),
+
+      totalVideoViews15s:
+        Math.round(totals.videoViews15s),
+
+      totalVideoViews95:
+        Math.round(totals.videoViews95),
+
+      totalVideoViews100:
+        Math.round(totals.videoViews100),
+
+      totalThruplay:
+        Math.round(totals.thruplay),
+
+      costPerThruplay:
+        roundMetric(costPerThruplay),
+
+      averageCtr:
+        roundMetric(averageCtr),
+
+      averageCpc:
+        roundMetric(averageCpc),
+
+      averageCpm:
+        roundMetric(averageCpm)
     },
 
     ranking:
