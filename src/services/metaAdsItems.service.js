@@ -1,6 +1,43 @@
 import { META_CONFIG } from "../config/meta.js";
 import { metaRequest } from "../lib/metaClient.js";
 
+function toNumber(value) {
+  const number = Number(value);
+
+  return Number.isFinite(number) ? number : 0;
+}
+
+function getActionValue(actions, actionType) {
+  if (!Array.isArray(actions)) {
+    return 0;
+  }
+
+  const action = actions.find(
+    (item) => item.action_type === actionType
+  );
+
+  return toNumber(action?.value);
+}
+
+function getFirstActionValue(actions) {
+  if (!Array.isArray(actions) || actions.length === 0) {
+    return 0;
+  }
+
+  return actions.reduce(
+    (total, item) => total + toNumber(item.value),
+    0
+  );
+}
+
+function calculateCost(spend, result) {
+  if (result <= 0) {
+    return 0;
+  }
+
+  return Number((spend / result).toFixed(4));
+}
+
 export async function getMetaAdsItems(
   accessToken,
   {
@@ -58,7 +95,14 @@ export async function getMetaAdsItems(
           "ctr",
           "cpc",
           "cpm",
-          "frequency"
+          "frequency",
+          "actions",
+          "cost_per_action_type",
+          "video_play_actions",
+          "video_15_sec_watched_actions",
+          "video_thruplay_watched_actions",
+          "video_p95_watched_actions",
+          "video_p100_watched_actions"
         ].join(","),
         time_range: JSON.stringify({
           since,
@@ -79,9 +123,59 @@ export async function getMetaAdsItems(
   let ads = (adsResponse.data || []).map((ad) => {
     const insights = insightsByAd.get(ad.id) || null;
 
-    const spend = Number(insights?.spend || 0);
-    const reach = Number(insights?.reach || 0);
-    const impressions = Number(insights?.impressions || 0);
+    const spend = toNumber(insights?.spend);
+    const reach = toNumber(insights?.reach);
+    const impressions = toNumber(
+      insights?.impressions
+    );
+    const clicks = toNumber(insights?.clicks);
+
+    const actions = insights?.actions || [];
+
+    const engagement = getActionValue(
+      actions,
+      "post_engagement"
+    );
+
+    const videoViews3s = getActionValue(
+      actions,
+      "video_view"
+    );
+
+    const thruplay = getFirstActionValue(
+      insights?.video_thruplay_watched_actions
+    );
+
+    const videoViews15s = getFirstActionValue(
+      insights?.video_15_sec_watched_actions
+    );
+
+    const videoViews95 = getFirstActionValue(
+      insights?.video_p95_watched_actions
+    );
+
+    const videoViews100 = getFirstActionValue(
+      insights?.video_p100_watched_actions
+    );
+
+    const videoPlays = getFirstActionValue(
+      insights?.video_play_actions
+    );
+
+    const costPerEngagement =
+      getActionValue(
+        insights?.cost_per_action_type,
+        "post_engagement"
+      ) || calculateCost(spend, engagement);
+
+    const costPerVideoView3s =
+      getActionValue(
+        insights?.cost_per_action_type,
+        "video_view"
+      ) || calculateCost(spend, videoViews3s);
+
+    const costPerThruplay =
+      calculateCost(spend, thruplay);
 
     return {
       ...ad,
@@ -93,16 +187,63 @@ export async function getMetaAdsItems(
 
       delivery: {
         deliveredInPeriod:
-          spend > 0 || reach > 0 || impressions > 0,
+          spend > 0 ||
+          reach > 0 ||
+          impressions > 0,
 
-        spend,
-        reach,
-        impressions,
-        clicks: Number(insights?.clicks || 0),
-        ctr: Number(insights?.ctr || 0),
-        cpc: Number(insights?.cpc || 0),
-        cpm: Number(insights?.cpm || 0),
-        frequency: Number(insights?.frequency || 0)
+        spend: Number(spend.toFixed(2)),
+        reach: Math.round(reach),
+
+        impressions:
+          Math.round(impressions),
+
+        views:
+          Math.round(impressions),
+
+        clicks:
+          Math.round(clicks),
+
+        ctr:
+          toNumber(insights?.ctr),
+
+        cpc:
+          toNumber(insights?.cpc),
+
+        cpm:
+          toNumber(insights?.cpm),
+
+        frequency:
+          toNumber(insights?.frequency),
+
+        engagement:
+          Math.round(engagement),
+
+        costPerEngagement:
+          Number(costPerEngagement.toFixed(4)),
+
+        videoPlays:
+          Math.round(videoPlays),
+
+        videoViews3s:
+          Math.round(videoViews3s),
+
+        costPerVideoView3s:
+          Number(costPerVideoView3s.toFixed(4)),
+
+        videoViews15s:
+          Math.round(videoViews15s),
+
+        videoViews95:
+          Math.round(videoViews95),
+
+        videoViews100:
+          Math.round(videoViews100),
+
+        thruplay:
+          Math.round(thruplay),
+
+        costPerThruplay:
+          Number(costPerThruplay.toFixed(4))
       }
     };
   });
