@@ -30,6 +30,35 @@ function getFirstActionValue(actions) {
   );
 }
 
+function getFollowerValue(actions) {
+  if (!Array.isArray(actions)) {
+    return 0;
+  }
+
+  const followerActionTypes = [
+    "onsite_conversion.total_follows",
+    "onsite_conversion.follow",
+    "instagram_profile_follow",
+    "page_like"
+  ];
+
+  return followerActionTypes.reduce(
+    (highestValue, actionType) => {
+      const currentValue =
+        getActionValue(
+          actions,
+          actionType
+        );
+
+      return Math.max(
+        highestValue,
+        currentValue
+      );
+    },
+    0
+  );
+}
+
 function calculateCost(spend, result) {
   if (result <= 0) {
     return 0;
@@ -56,7 +85,11 @@ export async function getMetaAdsItems(
     throw error;
   }
 
-  const [adsResponse, insightsResponse] = await Promise.all([
+   const [
+    adsResponse,
+    insightsResponse,
+    dailyInsightsResponse
+  ] = await Promise.all([
     metaRequest({
       path: `${META_CONFIG.adAccountId}/ads`,
       accessToken,
@@ -77,36 +110,77 @@ export async function getMetaAdsItems(
     }),
 
     metaRequest({
-      path: `${META_CONFIG.adAccountId}/insights`,
+      path:
+        `${META_CONFIG.adAccountId}/insights`,
+
       accessToken,
+
       params: {
         level: "ad",
+
         fields: [
-  "campaign_id",
-  "campaign_name",
-  "adset_id",
-  "adset_name",
-  "ad_id",
-  "ad_name",
-  "spend",
-  "reach",
-  "impressions",
-  "clicks",
-  "ctr",
-  "cpc",
-  "cpm",
-  "actions",
-  "cost_per_action_type",
-  "video_play_actions",
-  "video_15_sec_watched_actions",
-  "video_thruplay_watched_actions",
-  "video_p95_watched_actions",
-  "video_p100_watched_actions"
-].join(","),
-        time_range: JSON.stringify({
-          since,
-          until
-        }),
+          "campaign_id",
+          "campaign_name",
+          "adset_id",
+          "adset_name",
+          "ad_id",
+          "ad_name",
+          "spend",
+          "reach",
+          "impressions",
+          "clicks",
+          "ctr",
+          "cpc",
+          "cpm",
+          "actions",
+          "cost_per_action_type",
+          "video_play_actions",
+          "video_15_sec_watched_actions",
+          "video_thruplay_watched_actions",
+          "video_p95_watched_actions",
+          "video_p100_watched_actions"
+        ].join(","),
+
+        time_range:
+          JSON.stringify({
+            since,
+            until
+          }),
+
+        limit: 500
+      }
+    }),
+
+    metaRequest({
+      path:
+        `${META_CONFIG.adAccountId}/insights`,
+
+      accessToken,
+
+      params: {
+        level: "ad",
+
+        fields: [
+          "campaign_id",
+          "campaign_name",
+          "adset_id",
+          "adset_name",
+          "ad_id",
+          "ad_name",
+          "spend",
+          "reach",
+          "impressions",
+          "clicks",
+          "actions"
+        ].join(","),
+
+        time_range:
+          JSON.stringify({
+            since,
+            until
+          }),
+
+        time_increment: 1,
         limit: 500
       }
     })
@@ -247,9 +321,101 @@ export async function getMetaAdsItems(
     };
   });
 
-  if (campaignId) {
+    let dailyAds =
+    (dailyInsightsResponse.data || [])
+      .map((insight) => {
+        const actions =
+          insight.actions || [];
+
+        const followers =
+          getFollowerValue(actions);
+
+        return {
+          date:
+            insight.date_start || null,
+
+          campaignId:
+            insight.campaign_id || null,
+
+          campaignName:
+            insight.campaign_name || null,
+
+          adSetId:
+            insight.adset_id || null,
+
+          adSetName:
+            insight.adset_name || null,
+
+          adId:
+            insight.ad_id || null,
+
+          adName:
+            insight.ad_name || null,
+
+          spend:
+            Number(
+              toNumber(
+                insight.spend
+              ).toFixed(2)
+            ),
+
+          impressions:
+            Math.round(
+              toNumber(
+                insight.impressions
+              )
+            ),
+
+          views:
+            Math.round(
+              toNumber(
+                insight.impressions
+              )
+            ),
+
+          reach:
+            Math.round(
+              toNumber(
+                insight.reach
+              )
+            ),
+
+          clicks:
+            Math.round(
+              toNumber(
+                insight.clicks
+              )
+            ),
+
+          followers:
+            Math.round(followers)
+        };
+      })
+      .sort(
+        (itemA, itemB) => {
+          const dateComparison =
+            String(itemA.date).localeCompare(
+              String(itemB.date)
+            );
+
+          if (dateComparison !== 0) {
+            return dateComparison;
+          }
+
+          return (
+            toNumber(itemB.spend) -
+            toNumber(itemA.spend)
+          );
+        }
+      );
+
+    if (campaignId) {
     ads = ads.filter(
       (ad) => ad.campaign_id === campaignId
+    );
+
+    dailyAds = dailyAds.filter(
+      (ad) => ad.campaignId === campaignId
     );
   }
 
@@ -257,9 +423,45 @@ export async function getMetaAdsItems(
     ads = ads.filter(
       (ad) => ad.adset_id === adSetId
     );
+
+    dailyAds = dailyAds.filter(
+      (ad) => ad.adSetId === adSetId
+    );
   }
 
-  return {
+  const accountDailySpendMap = new Map();
+
+  for (const dailyAd of dailyAds) {
+    const currentValue =
+      accountDailySpendMap.get(
+        dailyAd.date
+      ) || 0;
+
+    accountDailySpendMap.set(
+      dailyAd.date,
+      currentValue +
+        toNumber(dailyAd.spend)
+    );
+  }
+
+  const accountDailySpend =
+    Array.from(
+      accountDailySpendMap.entries()
+    )
+      .map(([date, spend]) => ({
+        date,
+
+        spend:
+          Number(spend.toFixed(2))
+      }))
+      .sort(
+        (itemA, itemB) =>
+          itemA.date.localeCompare(
+            itemB.date
+          )
+      );
+
+    return {
     period: {
       since,
       until
@@ -284,6 +486,14 @@ export async function getMetaAdsItems(
       otherStatuses: ads.filter(
         (ad) => ad.effective_status !== "ACTIVE"
       ).length
+    },
+
+    daily: {
+      account:
+        accountDailySpend,
+
+      ads:
+        dailyAds
     },
 
     ads
