@@ -3,6 +3,7 @@ import { facebookOverview } from "./routes/facebook.js";
 import { metaBusinessOverview } from "./routes/metaBusiness.js";
 import { metaAdsCampaigns } from "./routes/metaAds.js";
 import { metaAdSets } from "./routes/metaAdSets.js";
+import { metaAdsItems } from "./routes/metaAdsItems.js";
 
 export default {
   async fetch(request, env) {
@@ -32,6 +33,9 @@ if (url.pathname === "/meta-ads/campaigns") {
 }
 if (url.pathname === "/meta-ads/adsets") {
   return metaAdSets(env, request);
+}
+if (url.pathname === "/meta-ads/ads") {
+  return metaAdsItems(env, request);
 }
     
     return Response.json(
