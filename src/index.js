@@ -7,6 +7,7 @@ import { metaAdsItems } from "./routes/metaAdsItems.js";
 import { metaCreatives } from "./routes/metaCreatives.js";
 import { metaAdsDashboard } from "./routes/metaAdsDashboard.js";
 import { dashboardPage } from "./routes/dashboardPage.js";
+import { metaAdsPage } from "./routes/metaAdsPage.js";
 
 export default {
   async fetch(request, env) {
@@ -17,27 +18,37 @@ export default {
         success: true,
         status: "online",
         api: "Central de Performance",
-        version: "2.0.0",
+        version: "2.1.0",
         timestamp: new Date().toISOString()
       });
     }
 
+    // Dashboard principal
     if (url.pathname === "/dashboard") {
       return dashboardPage();
     }
 
+    // Nova página Meta Ads
+    if (url.pathname === "/meta-ads") {
+      return metaAdsPage();
+    }
+
+    // APIs Instagram
     if (url.pathname === "/instagram/dashboard") {
       return instagramDashboard(env);
     }
 
+    // APIs Facebook
     if (url.pathname === "/facebook/overview") {
       return facebookOverview(env);
     }
 
+    // APIs Meta Business
     if (url.pathname === "/meta-business/overview") {
       return metaBusinessOverview(env);
     }
 
+    // APIs Meta Ads
     if (url.pathname === "/meta-ads/campaigns") {
       return metaAdsCampaigns(env, request);
     }
