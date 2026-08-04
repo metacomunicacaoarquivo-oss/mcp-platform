@@ -1,149 +1,137 @@
-function normalizeMunicipalityName(value = "") {
-  return normalizeText(value)
-    .replace(/\bmunicipio de\b/g, "")
-    .replace(/\bmunicipio do\b/g, "")
-    .replace(/\bmunicipio da\b/g, "")
-    .replace(/\bto\b$/g, "")
-    .replace(/\btocantins\b$/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function prepareTocantinsPopulationData(
-  municipalities = []
-) {
-  const normalizedMunicipalities = municipalities
-    .map((municipality) => {
-      const searchableName =
-        normalizeMunicipalityName(
-          municipality.municipalityName
-        );
-
-      const nameTokens = searchableName
-        .split(" ")
-        .filter(Boolean);
-
-      return {
-        ...municipality,
-        searchableName,
-        nameTokens
-      };
-    })
-    .filter(
-      (municipality) =>
-        municipality.municipalityCode &&
-        municipality.municipalityName &&
-        municipality.searchableName &&
-        municipality.nameTokens.length > 0 &&
-        toNumber(municipality.population) > 0
-    )
-    .sort(
-      (municipalityA, municipalityB) =>
-        municipalityB.nameTokens.length -
-          municipalityA.nameTokens.length ||
-        municipalityB.searchableName.length -
-          municipalityA.searchableName.length
-    );
-
-  const municipalityIndex = new Map();
-
-  for (const municipality of normalizedMunicipalities) {
-    municipalityIndex.set(
-      municipality.searchableName,
-      municipality
-    );
-  }
-
-  const statePopulation =
-    normalizedMunicipalities.reduce(
-      (total, municipality) =>
-        total + toNumber(municipality.population),
-      0
-    );
-
-  return {
-    municipalities: normalizedMunicipalities,
-    municipalityIndex,
-    statePopulation: Math.round(statePopulation)
-  };
-}
-
-function findMunicipalityInCampaign(
+function createGeographicData(
   campaignName,
+  reach,
   tocantinsPopulationData
 ) {
-  const normalizedCampaignName =
-    normalizeText(campaignName);
-
-  if (!normalizedCampaignName) {
-    return null;
-  }
-
-  const campaignTokens = normalizedCampaignName
-    .split(" ")
-    .filter(Boolean);
-
-  const {
-    municipalityIndex,
-    municipalities
-  } = tocantinsPopulationData;
+  const municipality =
+    findMunicipalityInCampaign(
+      campaignName,
+      tocantinsPopulationData
+    );
 
   /*
-   * Primeiro procura sequências de palavras do nome
-   * da campanha diretamente no índice dos municípios.
-   *
-   * Exemplo:
-   * "[ENG] Porto Nacional - Apoio"
-   * identifica "porto nacional".
+   * Quando um município do Tocantins aparece
+   * no nome da campanha, ela é municipal.
    */
-  const maximumTokenLength = Math.min(
-    5,
-    campaignTokens.length
-  );
+  if (municipality) {
+    const population = Math.round(
+      toNumber(municipality.population)
+    );
 
-  for (
-    let tokenLength = maximumTokenLength;
-    tokenLength >= 1;
-    tokenLength -= 1
-  ) {
-    for (
-      let startIndex = 0;
-      startIndex <=
-      campaignTokens.length - tokenLength;
-      startIndex += 1
-    ) {
-      const candidate = campaignTokens
-        .slice(
-          startIndex,
-          startIndex + tokenLength
-        )
-        .join(" ");
+    return {
+      geographicScope: {
+        type: "municipal",
+        label: "Municipal",
+        municipality:
+          municipality.municipalityName,
+        municipalityCode:
+          municipality.municipalityCode,
+        state: "Tocantins",
+        stateCode: "TO"
+      },
 
-      const municipality =
-        municipalityIndex.get(candidate);
+      ibge: {
+        scope: "municipal",
 
-      if (municipality) {
-        return municipality;
+        municipality:
+          municipality.municipalityName,
+
+        municipalityCode:
+          municipality.municipalityCode,
+
+        state: "Tocantins",
+
+        stateCode: "TO",
+
+        population,
+
+        reach: Math.round(
+          toNumber(reach)
+        ),
+
+        coveragePercentage:
+          calculatePopulationCoverage(
+            reach,
+            population
+          ),
+
+        coverageLabel:
+          "Cobertura estimada da população",
+
+        referenceYear:
+          municipality.referenceYear || 2025,
+
+        source:
+          municipality.source ||
+          "IBGE/SIDRA",
+
+        table:
+          municipality.table || "6579",
+
+        detectionRule:
+          "Município identificado no nome da campanha",
+
+        warning:
+          "O alcance da Meta representa contas únicas estimadas e não confirma residência individual."
       }
-    }
+    };
   }
 
   /*
-   * Busca alternativa para garantir que nomes compostos
-   * também sejam encontrados mesmo com símbolos,
-   * prefixos ou textos adicionais.
+   * Quando nenhum município aparece no nome,
+   * a campanha é considerada estadual.
    */
-  const campaignWithBoundaries =
-    ` ${normalizedCampaignName} `;
+  const statePopulation =
+    tocantinsPopulationData.statePopulation;
 
-  return (
-    municipalities.find((municipality) => {
-      const municipalityWithBoundaries =
-        ` ${municipality.searchableName} `;
+  return {
+    geographicScope: {
+      type: "state",
+      label: "Estadual",
+      municipality: null,
+      municipalityCode: null,
+      state: "Tocantins",
+      stateCode: "TO"
+    },
 
-      return campaignWithBoundaries.includes(
-        municipalityWithBoundaries
-      );
-    }) || null
-  );
+    ibge: {
+      scope: "state",
+
+      municipality: null,
+
+      municipalityCode: null,
+
+      state: "Tocantins",
+
+      stateCode: "TO",
+
+      population:
+        statePopulation,
+
+      reach: Math.round(
+        toNumber(reach)
+      ),
+
+      coveragePercentage:
+        calculatePopulationCoverage(
+          reach,
+          statePopulation
+        ),
+
+      coverageLabel:
+        "Cobertura estimada da população estadual",
+
+      referenceYear: 2025,
+
+      source: "IBGE/SIDRA",
+
+      table: "6579",
+
+      detectionRule:
+        "Nenhum município foi identificado no nome da campanha; campanha classificada como estadual",
+
+      warning:
+        "O alcance da Meta representa contas únicas estimadas e não confirma residência individual."
+    }
+  };
 }
