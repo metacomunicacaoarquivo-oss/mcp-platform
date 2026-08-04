@@ -298,6 +298,36 @@ export function metaAdsPage() {
       border-radius: 11px;
     }
 
+.performance-header {
+  display: grid;
+  gap: 3px;
+}
+
+.performance-eyebrow {
+  color: #f97316;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.performance-header h1 {
+  margin: 0;
+  color: var(--text);
+  font-size: 22px;
+  letter-spacing: -0.04em;
+}
+
+.performance-header h1 strong {
+  color: #f97316;
+}
+
+.performance-header p {
+  margin: 2px 0 0;
+  color: var(--text-soft);
+  font-size: 10px;
+}
+
     .topbar-title h1 {
       margin: 0;
       font-size: 20px;
@@ -606,25 +636,61 @@ export function metaAdsPage() {
       background: #fbfcfe;
     }
 
-    .campaign-cell {
-      min-width: 270px;
-    }
+.campaign-cell {
+  min-width: 330px;
+}
 
-    .campaign-cell strong {
-      display: block;
-      max-width: 330px;
-      overflow: hidden;
-      font-size: 12px;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
+.campaign-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
 
-    .campaign-cell span {
-      display: block;
-      margin-top: 5px;
-      color: var(--text-light);
-      font-size: 9px;
-    }
+.campaign-thumbnail {
+  width: 52px;
+  height: 52px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.campaign-thumbnail img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.campaign-thumbnail-placeholder {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  color: var(--text-light);
+  font-size: 16px;
+}
+
+.campaign-text {
+  min-width: 0;
+}
+
+.campaign-text strong {
+  display: block;
+  max-width: 330px;
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.campaign-text span {
+  display: block;
+  margin-top: 5px;
+  color: var(--text-light);
+  font-size: 9px;
+}
 
     .status-badge {
       display: inline-flex;
@@ -936,10 +1002,18 @@ export function metaAdsPage() {
             ☰
           </button>
 
-          <div class="topbar-title">
-            <h1>Meta Ads</h1>
-            <p>
-              Campanhas, conjuntos, anúncios e criativos.
+         <div class="topbar-title performance-header">
+  <span class="performance-eyebrow">
+    META COMUNICAÇÃO • DOCUMENTO INTERATIVO
+  </span>
+
+  <h1>
+    Central de
+    <strong>Performance</strong>
+  </h1>
+
+  <p>
+    Acompanhamento de campanhas, resultados e análises.
             </p>
           </div>
         </div>
@@ -1009,155 +1083,99 @@ export function metaAdsPage() {
           </span>
         </div>
 
-        <nav class="tabs">
-          <button
-            type="button"
-            class="tab-button active"
-            data-section="overview"
-          >
-            Visão geral
-          </button>
+       <nav class="tabs">
+  <button
+    type="button"
+    class="tab-button active"
+    data-section="overview"
+  >
+    Visão geral
+  </button>
 
-          <button
-            type="button"
-            class="tab-button"
-            data-section="campaigns"
-          >
-            Campanhas
-          </button>
+  <button
+    type="button"
+    class="tab-button"
+    data-section="ranking"
+  >
+    Ranking
+  </button>
 
-          <button
-            type="button"
-            class="tab-button"
-            data-section="adsets"
-          >
-            Conjuntos
-          </button>
-
-          <button
-            type="button"
-            class="tab-button"
-            data-section="ads"
-          >
-            Anúncios
-          </button>
-
-          <button
-            type="button"
-            class="tab-button"
-            data-section="creatives"
-          >
-            Criativos
-          </button>
-
-          <button
-            type="button"
-            class="tab-button"
-            data-section="ranking"
-          >
-            Ranking
-          </button>
-
-          <button
-            type="button"
-            class="tab-button"
-            data-section="municipalities"
-          >
-            Municípios
-          </button>
-        </nav>
+  <!--
+    Abas preservadas no código para uso futuro:
+    Campanhas, Conjuntos, Anúncios,
+    Criativos e Municípios.
+  -->
+</nav>
 
         <section
-          class="section-content active"
-          id="section-overview"
+  class="section-content active"
+  id="section-overview"
+>
+  <div
+    class="metrics-grid"
+    id="metricsGrid"
+  ></div>
+
+  <article class="panel">
+    <div class="panel-header">
+      <div class="panel-title">
+        <h3>Campanhas</h3>
+
+        <p>
+          Todas as campanhas encontradas no período selecionado.
+        </p>
+      </div>
+
+      <div class="panel-controls">
+        <input
+          type="search"
+          class="search-input"
+          id="campaignSearch"
+          placeholder="Pesquisar campanha"
         >
-          <div
-            class="metrics-grid"
-            id="metricsGrid"
-          ></div>
 
-          <article class="panel">
-            <div class="panel-header">
-              <div class="panel-title">
-                <h3>Resumo das campanhas</h3>
-
-                <p>
-                  Campanhas encontradas no período selecionado.
-                </p>
-              </div>
-            </div>
-
-            <div
-              class="table-wrapper"
-              id="overviewTable"
-            ></div>
-          </article>
-        </section>
-
-        <section
-          class="section-content"
-          id="section-campaigns"
+        <select
+          class="filter-select"
+          id="campaignStatusFilter"
         >
-          <article class="panel">
-            <div class="panel-header">
-              <div class="panel-title">
-                <h3>Campanhas</h3>
+          <option value="all">
+            Todas as situações
+          </option>
 
-                <p>
-                  Lista completa das campanhas no período.
-                </p>
-              </div>
+          <option value="active">
+            Ativas
+          </option>
 
-              <div class="panel-controls">
-                <input
-                  type="search"
-                  class="search-input"
-                  id="campaignSearch"
-                  placeholder="Pesquisar campanha"
-                >
+          <option value="ended">
+            Encerradas
+          </option>
+        </select>
 
-                <select
-                  class="filter-select"
-                  id="campaignStatusFilter"
-                >
-                  <option value="all">
-                    Todas as situações
-                  </option>
+        <select
+          class="filter-select"
+          id="campaignScopeFilter"
+        >
+          <option value="all">
+            Todos os âmbitos
+          </option>
 
-                  <option value="active">
-                    Ativas
-                  </option>
+          <option value="municipal">
+            Municipais
+          </option>
 
-                  <option value="ended">
-                    Encerradas
-                  </option>
-                </select>
+          <option value="state">
+            Estaduais
+          </option>
+        </select>
+      </div>
+    </div>
 
-                <select
-                  class="filter-select"
-                  id="campaignScopeFilter"
-                >
-                  <option value="all">
-                    Todos os âmbitos
-                  </option>
-
-                  <option value="municipal">
-                    Municipais
-                  </option>
-
-                  <option value="state">
-                    Estaduais
-                  </option>
-                </select>
-              </div>
-            </div>
-
-            <div
-              class="table-wrapper"
-              id="campaignsTable"
-            ></div>
-          </article>
-        </section>
+    <div
+      class="table-wrapper"
+      id="campaignsTable"
+    ></div>
+  </article>
+</section>
 
         <section
           class="section-content"
@@ -1309,9 +1327,6 @@ export function metaAdsPage() {
 
     const metricsGrid =
       document.getElementById("metricsGrid");
-
-    const overviewTable =
-      document.getElementById("overviewTable");
 
     const campaignsTable =
       document.getElementById("campaignsTable");
@@ -1536,18 +1551,48 @@ export function metaAdsPage() {
           return (
             "<tr>" +
               '<td class="campaign-cell">' +
-                "<strong>" +
-                  escapeHtml(
-                    campaign.name ||
-                    "Campanha sem nome"
-                  ) +
-                "</strong>" +
-                "<span>" +
-                  escapeHtml(
-                    getCampaignLocation(campaign)
-                  ) +
-                "</span>" +
-              "</td>" +
+  '<div class="campaign-info">' +
+
+    (
+      campaign.cover?.url
+        ? (
+            '<div class="campaign-thumbnail">' +
+              '<img' +
+                ' src="' +
+                escapeHtml(
+                  campaign.cover.url
+                ) +
+                '"' +
+                ' alt="Imagem da campanha"' +
+                ' loading="lazy"' +
+              '>' +
+            '</div>'
+          )
+        : (
+            '<div class="campaign-thumbnail">' +
+              '<div class="campaign-thumbnail-placeholder">' +
+                '◉' +
+              '</div>' +
+            '</div>'
+          )
+    ) +
+
+    '<div class="campaign-text">' +
+      "<strong>" +
+        escapeHtml(
+          campaign.name ||
+          "Campanha sem nome"
+        ) +
+      "</strong>" +
+
+      "<span>" +
+        escapeHtml(
+          getCampaignLocation(campaign)
+        ) +
+      "</span>" +
+    "</div>" +
+  "</div>" +
+"</td>" +
 
               "<td>" +
                 '<span class="status-badge ' +
@@ -1969,24 +2014,19 @@ export function metaAdsPage() {
         "</article>";
     }
 
-    function renderAll() {
-      renderMetrics(state.summary);
+ function renderAll() {
+  renderMetrics(state.summary);
 
-      renderCampaignTable(
-        overviewTable,
-        state.campaigns.slice(0, 10)
-      );
+  renderFilteredCampaigns();
 
-      renderFilteredCampaigns();
+  renderRanking(state.ranking);
 
-      renderRanking(state.ranking);
+  renderMunicipalities(
+    state.campaigns
+  );
 
-      renderMunicipalities(
-        state.campaigns
-      );
-
-      renderSummaryCards();
-    }
+  renderSummaryCards();
+}
 
     async function loadData(
       since,
@@ -2052,37 +2092,34 @@ export function metaAdsPage() {
           3000
         );
       } catch (error) {
-        state.campaigns = [];
-        state.summary = {};
-        state.ranking = {};
-        state.geography = {};
+  state.campaigns = [];
+  state.summary = {};
+  state.ranking = {};
+  state.geography = {};
 
-        metricsGrid.innerHTML = "";
+  metricsGrid.innerHTML = "";
 
-        overviewTable.innerHTML =
-          '<div class="empty-state">' +
-            "<div>" +
-              "<strong>Não foi possível carregar os dados</strong>" +
-              "<span>" +
-                "Atualize o token da Meta e tente novamente." +
-              "</span>" +
-            "</div>" +
-          "</div>";
+  campaignsTable.innerHTML =
+    '<div class="empty-state">' +
+      "<div>" +
+        "<strong>Não foi possível carregar os dados</strong>" +
+        "<span>" +
+          "Atualize o token da Meta e tente novamente." +
+        "</span>" +
+      "</div>" +
+    "</div>";
 
-        campaignsTable.innerHTML =
-          overviewTable.innerHTML;
+  rankingTable.innerHTML =
+    campaignsTable.innerHTML;
 
-        rankingTable.innerHTML =
-          overviewTable.innerHTML;
+  municipalitiesTable.innerHTML =
+    campaignsTable.innerHTML;
 
-        municipalitiesTable.innerHTML =
-          overviewTable.innerHTML;
-
-        setFeedback(
-          "error",
-          error.message ||
-          "Ocorreu um erro ao carregar os dados."
-        );
+  setFeedback(
+    "error",
+    error.message ||
+    "Ocorreu um erro ao carregar os dados."
+  );
       } finally {
         updateButton.disabled = false;
       }
