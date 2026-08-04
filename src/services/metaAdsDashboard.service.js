@@ -1,4 +1,4 @@
- function normalizeMunicipalityName(value = "") {
+function normalizeMunicipalityName(value = "") {
   return normalizeText(value)
     .replace(/\bmunicipio de\b/g, "")
     .replace(/\bmunicipio do\b/g, "")
