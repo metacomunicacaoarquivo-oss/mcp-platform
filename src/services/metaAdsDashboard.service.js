@@ -1,8 +1,13 @@
-import { getMetaAdsCampaigns } from "./metaAds.service.js";
+ import { getMetaAdsCampaigns } from "./metaAds.service.js";
 import { getMetaAdSets } from "./metaAdSets.service.js";
 import { getMetaAdsItems } from "./metaAdsItems.service.js";
 import { getMetaCreatives } from "./metaCreatives.service.js";
 import { generateMetaAdsRanking } from "./metaRanking.service.js";
+
+import {
+  getIbgeMunicipalPopulations,
+  calculatePopulationCoverage
+} from "./ibge.service.js";
 
 function toNumber(value) {
   const number = Number(value);
@@ -16,6 +21,16 @@ function roundMoney(value) {
 
 function roundMetric(value, decimals = 4) {
   return Number(toNumber(value).toFixed(decimals));
+}
+
+function normalizeText(value = "") {
+  return String(value)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function calculateCampaignPerformance(adSets = []) {
@@ -168,6 +183,127 @@ function calculateCampaignPerformance(adSets = []) {
   };
 }
 
+function prepareTocantinsPopulationData(
+  municipalities = []
+) {
+  const tocantinsMunicipalities = municipalities
+    .filter((municipality) =>
+      String(municipality.municipalityCode || "")
+        .startsWith("17")
+    )
+    .sort(
+      (municipalityA, municipalityB) =>
+        municipalityB.normalizedName.length -
+        municipalityA.normalizedName.length
+    );
+
+  const statePopulation =
+    tocantinsMunicipalities.reduce(
+      (total, municipality) =>
+        total + toNumber(municipality.population),
+      0
+    );
+
+  return {
+    municipalities: tocantinsMunicipalities,
+    statePopulation: Math.round(statePopulation)
+  };
+}
+
+function identifyCampaignLocation(
+  campaignName,
+  tocantinsPopulationData
+) {
+  const normalizedCampaignName =
+    ` ${normalizeText(campaignName)} `;
+
+  const municipality =
+    tocantinsPopulationData.municipalities.find(
+      (item) => {
+        const normalizedMunicipality =
+          ` ${item.normalizedName} `;
+
+        return normalizedCampaignName.includes(
+          normalizedMunicipality
+        );
+      }
+    );
+
+  if (municipality) {
+    return {
+      scope: "municipal",
+      scopeLabel: "Municipal",
+      municipalityCode:
+        municipality.municipalityCode,
+      municipality:
+        municipality.municipalityName,
+      state: "Tocantins",
+      stateCode: "TO",
+      population:
+        Math.round(
+          toNumber(municipality.population)
+        ),
+      referenceYear:
+        municipality.referenceYear,
+      source:
+        municipality.source,
+      table:
+        municipality.table,
+      detectionRule:
+        "Município identificado no nome da campanha"
+    };
+  }
+
+  return {
+    scope: "state",
+    scopeLabel: "Estadual",
+    municipalityCode: null,
+    municipality: null,
+    state: "Tocantins",
+    stateCode: "TO",
+    population:
+      tocantinsPopulationData.statePopulation,
+    referenceYear:
+      tocantinsPopulationData
+        .municipalities[0]
+        ?.referenceYear || 2025,
+    source: "IBGE/SIDRA",
+    table: "6579",
+    detectionRule:
+      "Nenhum município foi identificado no nome da campanha"
+  };
+}
+
+function createIbgeData(
+  campaignName,
+  reach,
+  tocantinsPopulationData
+) {
+  const location = identifyCampaignLocation(
+    campaignName,
+    tocantinsPopulationData
+  );
+
+  return {
+    ...location,
+
+    reach:
+      Math.round(toNumber(reach)),
+
+    coveragePercentage:
+      calculatePopulationCoverage(
+        reach,
+        location.population
+      ),
+
+    coverageLabel:
+      "Cobertura estimada da população",
+
+    warning:
+      "O alcance da Meta representa contas únicas estimadas e não confirma residência individual."
+  };
+}
+
 export async function getMetaAdsDashboard(
   accessToken,
   {
@@ -188,7 +324,8 @@ export async function getMetaAdsDashboard(
     campaignsData,
     adSetsData,
     adsData,
-    creativesData
+    creativesData,
+    ibgeMunicipalities
   ] = await Promise.all([
     getMetaAdsCampaigns(accessToken, {
       since,
@@ -205,8 +342,15 @@ export async function getMetaAdsDashboard(
       until
     }),
 
-    getMetaCreatives(accessToken)
+    getMetaCreatives(accessToken),
+
+    getIbgeMunicipalPopulations()
   ]);
+
+  const tocantinsPopulationData =
+    prepareTocantinsPopulationData(
+      ibgeMunicipalities
+    );
 
   /*
    * Relaciona cada anúncio ao seu criativo.
@@ -328,8 +472,28 @@ export async function getMetaAdsDashboard(
             toNumber(adA.delivery?.reach)
         )[0] || null;
 
+    const performance =
+      calculateCampaignPerformance(adSets);
+
+    const ibge =
+      createIbgeData(
+        campaign.name,
+        performance.reach,
+        tocantinsPopulationData
+      );
+
     return {
       ...campaign,
+
+      geographicScope: {
+        type: ibge.scope,
+        label: ibge.scopeLabel,
+        municipality: ibge.municipality,
+        state: ibge.state,
+        stateCode: ibge.stateCode
+      },
+
+      ibge,
 
       cover: mainAd
         ? {
@@ -341,8 +505,7 @@ export async function getMetaAdsDashboard(
           }
         : null,
 
-      performance:
-        calculateCampaignPerformance(adSets),
+      performance,
 
       summary: {
         totalAdSets:
@@ -487,10 +650,40 @@ export async function getMetaAdsDashboard(
       ? totals.spend / totals.thruplay
       : 0;
 
+  const municipalCampaigns =
+    campaignsWithRanking.filter(
+      (campaign) =>
+        campaign.geographicScope?.type ===
+        "municipal"
+    ).length;
+
+  const stateCampaigns =
+    campaignsWithRanking.filter(
+      (campaign) =>
+        campaign.geographicScope?.type ===
+        "state"
+    ).length;
+
   return {
     period: {
       since,
       until
+    },
+
+    geography: {
+      state: "Tocantins",
+      stateCode: "TO",
+      statePopulation:
+        tocantinsPopulationData.statePopulation,
+      referenceYear:
+        tocantinsPopulationData
+          .municipalities[0]
+          ?.referenceYear || 2025,
+      totalMunicipalities:
+        tocantinsPopulationData
+          .municipalities.length,
+      municipalCampaigns,
+      stateCampaigns
     },
 
     summary: {
@@ -511,6 +704,10 @@ export async function getMetaAdsDashboard(
           (campaign) =>
             Boolean(campaign.cover?.url)
         ).length,
+
+      municipalCampaigns,
+
+      stateCampaigns,
 
       totalSpend:
         roundMoney(totals.spend),
