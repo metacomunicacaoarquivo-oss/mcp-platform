@@ -5,7 +5,7 @@ import { getMetaCreatives } from "./metaCreatives.service.js";
 import { generateMetaAdsRanking } from "./metaRanking.service.js";
 
 import {
-  getIbgeMunicipalPopulations,
+  getTocantinsMunicipalPopulations,
   calculatePopulationCoverage
 } from "./ibge.service.js";
 
@@ -29,6 +29,21 @@ function normalizeText(value = "") {
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/*
+ * Remove o sufixo do estado que pode aparecer nos dados do IBGE.
+ *
+ * Exemplos:
+ * "Palmas - TO" → "palmas"
+ * "Porto Nacional (TO)" → "porto nacional"
+ */
+function normalizeMunicipalityName(value = "") {
+  return normalizeText(value)
+    .replace(/\bto\b$/i, "")
+    .replace(/\btocantins\b$/i, "")
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -133,174 +148,272 @@ function calculateCampaignPerformance(adSets = []) {
 
     reach: Math.round(totals.reach),
 
-    impressions:
-      Math.round(totals.impressions),
+    impressions: Math.round(
+      totals.impressions
+    ),
 
-    views:
-      Math.round(totals.impressions),
+    views: Math.round(
+      totals.impressions
+    ),
 
-    clicks:
-      Math.round(totals.clicks),
+    clicks: Math.round(totals.clicks),
 
-    ctr:
-      roundMetric(ctr),
+    ctr: roundMetric(ctr),
 
-    cpc:
-      roundMetric(cpc),
+    cpc: roundMetric(cpc),
 
-    cpm:
-      roundMetric(cpm),
+    cpm: roundMetric(cpm),
 
-    engagement:
-      Math.round(totals.engagement),
+    engagement: Math.round(
+      totals.engagement
+    ),
 
-    costPerEngagement:
-      roundMetric(costPerEngagement),
+    costPerEngagement: roundMetric(
+      costPerEngagement
+    ),
 
-    videoPlays:
-      Math.round(totals.videoPlays),
+    videoPlays: Math.round(
+      totals.videoPlays
+    ),
 
-    videoViews3s:
-      Math.round(totals.videoViews3s),
+    videoViews3s: Math.round(
+      totals.videoViews3s
+    ),
 
-    costPerVideoView3s:
-      roundMetric(costPerVideoView3s),
+    costPerVideoView3s: roundMetric(
+      costPerVideoView3s
+    ),
 
-    videoViews15s:
-      Math.round(totals.videoViews15s),
+    videoViews15s: Math.round(
+      totals.videoViews15s
+    ),
 
-    videoViews95:
-      Math.round(totals.videoViews95),
+    videoViews95: Math.round(
+      totals.videoViews95
+    ),
 
-    videoViews100:
-      Math.round(totals.videoViews100),
+    videoViews100: Math.round(
+      totals.videoViews100
+    ),
 
-    thruplay:
-      Math.round(totals.thruplay),
+    thruplay: Math.round(
+      totals.thruplay
+    ),
 
-    costPerThruplay:
-      roundMetric(costPerThruplay)
+    costPerThruplay: roundMetric(
+      costPerThruplay
+    )
   };
 }
 
 function prepareTocantinsPopulationData(
   municipalities = []
 ) {
-  const tocantinsMunicipalities = municipalities
-    .filter((municipality) =>
-      String(municipality.municipalityCode || "")
-        .startsWith("17")
+  const normalizedMunicipalities = municipalities
+    .map((municipality) => {
+      const searchableName =
+        normalizeMunicipalityName(
+          municipality.municipalityName
+        );
+
+      return {
+        ...municipality,
+        searchableName
+      };
+    })
+    .filter(
+      (municipality) =>
+        municipality.municipalityCode &&
+        municipality.municipalityName &&
+        municipality.searchableName &&
+        toNumber(municipality.population) > 0
     )
+    /*
+     * Procura primeiro os nomes mais longos.
+     * Assim, "Porto Nacional" é identificado antes
+     * de possíveis nomes menores.
+     */
     .sort(
       (municipalityA, municipalityB) =>
-        municipalityB.normalizedName.length -
-        municipalityA.normalizedName.length
+        municipalityB.searchableName.length -
+        municipalityA.searchableName.length
     );
 
   const statePopulation =
-    tocantinsMunicipalities.reduce(
+    normalizedMunicipalities.reduce(
       (total, municipality) =>
-        total + toNumber(municipality.population),
+        total +
+        toNumber(municipality.population),
       0
     );
 
   return {
-    municipalities: tocantinsMunicipalities,
-    statePopulation: Math.round(statePopulation)
+    municipalities:
+      normalizedMunicipalities,
+
+    statePopulation:
+      Math.round(statePopulation)
   };
 }
 
-function identifyCampaignLocation(
+function findMunicipalityInCampaign(
   campaignName,
-  tocantinsPopulationData
+  municipalities
 ) {
   const normalizedCampaignName =
     ` ${normalizeText(campaignName)} `;
 
-  const municipality =
-    tocantinsPopulationData.municipalities.find(
-      (item) => {
-        const normalizedMunicipality =
-          ` ${item.normalizedName} `;
+  return (
+    municipalities.find((municipality) => {
+      const municipalityName =
+        municipality.searchableName;
 
-        return normalizedCampaignName.includes(
-          normalizedMunicipality
-        );
+      if (!municipalityName) {
+        return false;
       }
-    );
 
-  if (municipality) {
-    return {
-      scope: "municipal",
-      scopeLabel: "Municipal",
-      municipalityCode:
-        municipality.municipalityCode,
-      municipality:
-        municipality.municipalityName,
-      state: "Tocantins",
-      stateCode: "TO",
-      population:
-        Math.round(
-          toNumber(municipality.population)
-        ),
-      referenceYear:
-        municipality.referenceYear,
-      source:
-        municipality.source,
-      table:
-        municipality.table,
-      detectionRule:
-        "Município identificado no nome da campanha"
-    };
-  }
-
-  return {
-    scope: "state",
-    scopeLabel: "Estadual",
-    municipalityCode: null,
-    municipality: null,
-    state: "Tocantins",
-    stateCode: "TO",
-    population:
-      tocantinsPopulationData.statePopulation,
-    referenceYear:
-      tocantinsPopulationData
-        .municipalities[0]
-        ?.referenceYear || 2025,
-    source: "IBGE/SIDRA",
-    table: "6579",
-    detectionRule:
-      "Nenhum município foi identificado no nome da campanha"
-  };
+      return normalizedCampaignName.includes(
+        ` ${municipalityName} `
+      );
+    }) || null
+  );
 }
 
-function createIbgeData(
+function createGeographicData(
   campaignName,
   reach,
   tocantinsPopulationData
 ) {
-  const location = identifyCampaignLocation(
-    campaignName,
-    tocantinsPopulationData
-  );
+  const municipality =
+    findMunicipalityInCampaign(
+      campaignName,
+      tocantinsPopulationData.municipalities
+    );
+
+  /*
+   * Regra aprovada:
+   * se houver município no nome, a campanha é municipal.
+   */
+  if (municipality) {
+    const population =
+      Math.round(
+        toNumber(municipality.population)
+      );
+
+    return {
+      geographicScope: {
+        type: "municipal",
+        label: "Municipal",
+        municipality:
+          municipality.municipalityName,
+        municipalityCode:
+          municipality.municipalityCode,
+        state: "Tocantins",
+        stateCode: "TO"
+      },
+
+      ibge: {
+        scope: "municipal",
+
+        municipality:
+          municipality.municipalityName,
+
+        municipalityCode:
+          municipality.municipalityCode,
+
+        state: "Tocantins",
+
+        stateCode: "TO",
+
+        population,
+
+        reach:
+          Math.round(toNumber(reach)),
+
+        coveragePercentage:
+          calculatePopulationCoverage(
+            reach,
+            population
+          ),
+
+        coverageLabel:
+          "Cobertura estimada da população",
+
+        referenceYear:
+          municipality.referenceYear || 2025,
+
+        source:
+          municipality.source ||
+          "IBGE/SIDRA",
+
+        table:
+          municipality.table || "6579",
+
+        detectionRule:
+          "Município identificado no nome da campanha",
+
+        warning:
+          "O alcance da Meta representa contas únicas estimadas e não confirma residência individual."
+      }
+    };
+  }
+
+  /*
+   * Regra aprovada:
+   * se nenhum município estiver no nome,
+   * a campanha será considerada estadual.
+   */
+  const statePopulation =
+    tocantinsPopulationData.statePopulation;
 
   return {
-    ...location,
+    geographicScope: {
+      type: "state",
+      label: "Estadual",
+      municipality: null,
+      municipalityCode: null,
+      state: "Tocantins",
+      stateCode: "TO"
+    },
 
-    reach:
-      Math.round(toNumber(reach)),
+    ibge: {
+      scope: "state",
 
-    coveragePercentage:
-      calculatePopulationCoverage(
-        reach,
-        location.population
-      ),
+      municipality: null,
 
-    coverageLabel:
-      "Cobertura estimada da população",
+      municipalityCode: null,
 
-    warning:
-      "O alcance da Meta representa contas únicas estimadas e não confirma residência individual."
+      state: "Tocantins",
+
+      stateCode: "TO",
+
+      population:
+        statePopulation,
+
+      reach:
+        Math.round(toNumber(reach)),
+
+      coveragePercentage:
+        calculatePopulationCoverage(
+          reach,
+          statePopulation
+        ),
+
+      coverageLabel:
+        "Cobertura estimada da população estadual",
+
+      referenceYear: 2025,
+
+      source: "IBGE/SIDRA",
+
+      table: "6579",
+
+      detectionRule:
+        "Nenhum município foi identificado no nome da campanha; campanha classificada como estadual",
+
+      warning:
+        "O alcance da Meta representa contas únicas estimadas e não confirma residência individual."
+    }
   };
 }
 
@@ -325,7 +438,7 @@ export async function getMetaAdsDashboard(
     adSetsData,
     adsData,
     creativesData,
-    ibgeMunicipalities
+    tocantinsMunicipalities
   ] = await Promise.all([
     getMetaAdsCampaigns(accessToken, {
       since,
@@ -344,12 +457,12 @@ export async function getMetaAdsDashboard(
 
     getMetaCreatives(accessToken),
 
-    getIbgeMunicipalPopulations()
+    getTocantinsMunicipalPopulations()
   ]);
 
   const tocantinsPopulationData =
     prepareTocantinsPopulationData(
-      ibgeMunicipalities
+      tocantinsMunicipalities
     );
 
   /*
@@ -357,19 +470,29 @@ export async function getMetaAdsDashboard(
    */
   const creativeByAdId = new Map();
 
-  for (const creative of creativesData.creatives || []) {
-    for (const linkedAd of creative.ads || []) {
+  for (
+    const creative of
+    creativesData.creatives || []
+  ) {
+    for (
+      const linkedAd of creative.ads || []
+    ) {
       creativeByAdId.set(linkedAd.id, {
         id: creative.id,
         name: creative.name,
+
         thumbnailUrl:
           creative.thumbnailUrl,
+
         imageUrl:
           creative.imageUrl,
+
         effectiveObjectStoryId:
           creative.effectiveObjectStoryId,
+
         objectStorySpec:
           creative.objectStorySpec,
+
         assetFeedSpec:
           creative.assetFeedSpec
       });
@@ -377,7 +500,7 @@ export async function getMetaAdsDashboard(
   }
 
   /*
-   * Agrupa os anúncios pelo conjunto de anúncios.
+   * Agrupa anúncios por conjunto.
    */
   const adsByAdSetId = new Map();
 
@@ -397,7 +520,10 @@ export async function getMetaAdsDashboard(
     };
 
     if (!adsByAdSetId.has(ad.adset_id)) {
-      adsByAdSetId.set(ad.adset_id, []);
+      adsByAdSetId.set(
+        ad.adset_id,
+        []
+      );
     }
 
     adsByAdSetId
@@ -406,11 +532,14 @@ export async function getMetaAdsDashboard(
   }
 
   /*
-   * Agrupa os conjuntos pela campanha.
+   * Agrupa conjuntos por campanha.
    */
   const adSetsByCampaignId = new Map();
 
-  for (const adSet of adSetsData.adSets || []) {
+  for (
+    const adSet of
+    adSetsData.adSets || []
+  ) {
     const ads =
       adsByAdSetId.get(adSet.id) || [];
 
@@ -433,7 +562,11 @@ export async function getMetaAdsDashboard(
       ads
     };
 
-    if (!adSetsByCampaignId.has(adSet.campaign_id)) {
+    if (
+      !adSetsByCampaignId.has(
+        adSet.campaign_id
+      )
+    ) {
       adSetsByCampaignId.set(
         adSet.campaign_id,
         []
@@ -446,14 +579,15 @@ export async function getMetaAdsDashboard(
   }
 
   /*
-   * Monta cada campanha com conjuntos, anúncios,
-   * criativos, capas e métricas consolidadas.
+   * Monta as campanhas completas.
    */
   const campaigns = (
     campaignsData.campaigns || []
   ).map((campaign) => {
     const adSets =
-      adSetsByCampaignId.get(campaign.id) || [];
+      adSetsByCampaignId.get(
+        campaign.id
+      ) || [];
 
     const allAds = adSets.flatMap(
       (adSet) => adSet.ads || []
@@ -468,15 +602,21 @@ export async function getMetaAdsDashboard(
         .slice()
         .sort(
           (adA, adB) =>
-            toNumber(adB.delivery?.reach) -
-            toNumber(adA.delivery?.reach)
+            toNumber(
+              adB.delivery?.reach
+            ) -
+            toNumber(
+              adA.delivery?.reach
+            )
         )[0] || null;
 
     const performance =
-      calculateCampaignPerformance(adSets);
+      calculateCampaignPerformance(
+        adSets
+      );
 
-    const ibge =
-      createIbgeData(
+    const geographicData =
+      createGeographicData(
         campaign.name,
         performance.reach,
         tocantinsPopulationData
@@ -485,21 +625,22 @@ export async function getMetaAdsDashboard(
     return {
       ...campaign,
 
-      geographicScope: {
-        type: ibge.scope,
-        label: ibge.scopeLabel,
-        municipality: ibge.municipality,
-        state: ibge.state,
-        stateCode: ibge.stateCode
-      },
+      geographicScope:
+        geographicData.geographicScope,
 
-      ibge,
+      ibge:
+        geographicData.ibge,
 
       cover: mainAd
         ? {
             adId: mainAd.id,
-            adName: mainAd.name,
-            url: mainAd.coverUrl,
+
+            adName:
+              mainAd.name,
+
+            url:
+              mainAd.coverUrl,
+
             selectionRule:
               "Anúncio com maior alcance no período"
           }
@@ -514,10 +655,12 @@ export async function getMetaAdsDashboard(
         totalAds:
           allAds.length,
 
-        deliveredAds: allAds.filter(
-          (ad) =>
-            ad.delivery?.deliveredInPeriod
-        ).length,
+        deliveredAds:
+          allAds.filter(
+            (ad) =>
+              ad.delivery
+                ?.deliveredInPeriod
+          ).length,
 
         adsWithCover:
           adsWithCover.length
@@ -528,140 +671,152 @@ export async function getMetaAdsDashboard(
   });
 
   /*
-   * Gera o ranking das campanhas.
+   * Ranking.
    */
   const rankingResult =
     generateMetaAdsRanking(campaigns);
 
-  const rankingByCampaignId = new Map(
-    (rankingResult.campaigns || []).map(
-      (campaign) => [
+  const rankingByCampaignId =
+    new Map(
+      (
+        rankingResult.campaigns || []
+      ).map((campaign) => [
         campaign.id,
         campaign.ranking || {}
-      ]
-    )
-  );
+      ])
+    );
 
-  const campaignsWithRanking = campaigns.map(
-    (campaign) => ({
+  const campaignsWithRanking =
+    campaigns.map((campaign) => ({
       ...campaign,
 
       ranking:
-        rankingByCampaignId.get(campaign.id) || {}
-    })
-  );
+        rankingByCampaignId.get(
+          campaign.id
+        ) || {}
+    }));
 
   /*
-   * Consolida as métricas gerais.
+   * Totais gerais.
    */
-  const totals = campaignsWithRanking.reduce(
-    (result, campaign) => {
-      const performance =
-        campaign.performance || {};
+  const totals =
+    campaignsWithRanking.reduce(
+      (result, campaign) => {
+        const performance =
+          campaign.performance || {};
 
-      result.spend += toNumber(
-        performance.spend
-      );
+        result.spend += toNumber(
+          performance.spend
+        );
 
-      result.reach += toNumber(
-        performance.reach
-      );
+        result.reach += toNumber(
+          performance.reach
+        );
 
-      result.views += toNumber(
-        performance.views
-      );
+        result.views += toNumber(
+          performance.views
+        );
 
-      result.impressions += toNumber(
-        performance.impressions
-      );
+        result.impressions += toNumber(
+          performance.impressions
+        );
 
-      result.clicks += toNumber(
-        performance.clicks
-      );
+        result.clicks += toNumber(
+          performance.clicks
+        );
 
-      result.engagement += toNumber(
-        performance.engagement
-      );
+        result.engagement += toNumber(
+          performance.engagement
+        );
 
-      result.videoPlays += toNumber(
-        performance.videoPlays
-      );
+        result.videoPlays += toNumber(
+          performance.videoPlays
+        );
 
-      result.videoViews3s += toNumber(
-        performance.videoViews3s
-      );
+        result.videoViews3s += toNumber(
+          performance.videoViews3s
+        );
 
-      result.videoViews15s += toNumber(
-        performance.videoViews15s
-      );
+        result.videoViews15s += toNumber(
+          performance.videoViews15s
+        );
 
-      result.videoViews95 += toNumber(
-        performance.videoViews95
-      );
+        result.videoViews95 += toNumber(
+          performance.videoViews95
+        );
 
-      result.videoViews100 += toNumber(
-        performance.videoViews100
-      );
+        result.videoViews100 += toNumber(
+          performance.videoViews100
+        );
 
-      result.thruplay += toNumber(
-        performance.thruplay
-      );
+        result.thruplay += toNumber(
+          performance.thruplay
+        );
 
-      return result;
-    },
-    {
-      spend: 0,
-      reach: 0,
-      views: 0,
-      impressions: 0,
-      clicks: 0,
-      engagement: 0,
-      videoPlays: 0,
-      videoViews3s: 0,
-      videoViews15s: 0,
-      videoViews95: 0,
-      videoViews100: 0,
-      thruplay: 0
-    }
-  );
+        return result;
+      },
+      {
+        spend: 0,
+        reach: 0,
+        views: 0,
+        impressions: 0,
+        clicks: 0,
+        engagement: 0,
+        videoPlays: 0,
+        videoViews3s: 0,
+        videoViews15s: 0,
+        videoViews95: 0,
+        videoViews100: 0,
+        thruplay: 0
+      }
+    );
 
   const averageCtr =
     totals.impressions > 0
-      ? (totals.clicks / totals.impressions) * 100
+      ? (
+          totals.clicks /
+          totals.impressions
+        ) * 100
       : 0;
 
   const averageCpc =
     totals.clicks > 0
-      ? totals.spend / totals.clicks
+      ? totals.spend /
+        totals.clicks
       : 0;
 
   const averageCpm =
     totals.impressions > 0
-      ? (totals.spend / totals.impressions) * 1000
+      ? (
+          totals.spend /
+          totals.impressions
+        ) * 1000
       : 0;
 
   const costPerEngagement =
     totals.engagement > 0
-      ? totals.spend / totals.engagement
+      ? totals.spend /
+        totals.engagement
       : 0;
 
   const costPerThruplay =
     totals.thruplay > 0
-      ? totals.spend / totals.thruplay
+      ? totals.spend /
+        totals.thruplay
       : 0;
 
   const municipalCampaigns =
     campaignsWithRanking.filter(
       (campaign) =>
-        campaign.geographicScope?.type ===
-        "municipal"
+        campaign.geographicScope
+          ?.type === "municipal"
     ).length;
 
   const stateCampaigns =
     campaignsWithRanking.filter(
       (campaign) =>
-        campaign.geographicScope?.type ===
-        "state"
+        campaign.geographicScope
+          ?.type === "state"
     ).length;
 
   return {
@@ -672,17 +827,21 @@ export async function getMetaAdsDashboard(
 
     geography: {
       state: "Tocantins",
+
       stateCode: "TO",
+
       statePopulation:
-        tocantinsPopulationData.statePopulation,
-      referenceYear:
         tocantinsPopulationData
-          .municipalities[0]
-          ?.referenceYear || 2025,
+          .statePopulation,
+
+      referenceYear: 2025,
+
       totalMunicipalities:
         tocantinsPopulationData
           .municipalities.length,
+
       municipalCampaigns,
+
       stateCampaigns
     },
 
@@ -691,18 +850,23 @@ export async function getMetaAdsDashboard(
         campaignsWithRanking.length,
 
       totalAdSets:
-        adSetsData.summary?.totalAdSets || 0,
+        adSetsData.summary
+          ?.totalAdSets || 0,
 
       totalAds:
-        adsData.summary?.totalAds || 0,
+        adsData.summary
+          ?.totalAds || 0,
 
       totalCreatives:
-        creativesData.summary?.totalCreatives || 0,
+        creativesData.summary
+          ?.totalCreatives || 0,
 
       campaignsWithCover:
         campaignsWithRanking.filter(
           (campaign) =>
-            Boolean(campaign.cover?.url)
+            Boolean(
+              campaign.cover?.url
+            )
         ).length,
 
       municipalCampaigns,
@@ -719,37 +883,57 @@ export async function getMetaAdsDashboard(
         Math.round(totals.views),
 
       totalImpressions:
-        Math.round(totals.impressions),
+        Math.round(
+          totals.impressions
+        ),
 
       totalClicks:
         Math.round(totals.clicks),
 
       totalEngagement:
-        Math.round(totals.engagement),
+        Math.round(
+          totals.engagement
+        ),
 
       costPerEngagement:
-        roundMetric(costPerEngagement),
+        roundMetric(
+          costPerEngagement
+        ),
 
       totalVideoPlays:
-        Math.round(totals.videoPlays),
+        Math.round(
+          totals.videoPlays
+        ),
 
       totalVideoViews3s:
-        Math.round(totals.videoViews3s),
+        Math.round(
+          totals.videoViews3s
+        ),
 
       totalVideoViews15s:
-        Math.round(totals.videoViews15s),
+        Math.round(
+          totals.videoViews15s
+        ),
 
       totalVideoViews95:
-        Math.round(totals.videoViews95),
+        Math.round(
+          totals.videoViews95
+        ),
 
       totalVideoViews100:
-        Math.round(totals.videoViews100),
+        Math.round(
+          totals.videoViews100
+        ),
 
       totalThruplay:
-        Math.round(totals.thruplay),
+        Math.round(
+          totals.thruplay
+        ),
 
       costPerThruplay:
-        roundMetric(costPerThruplay),
+        roundMetric(
+          costPerThruplay
+        ),
 
       averageCtr:
         roundMetric(averageCtr),
