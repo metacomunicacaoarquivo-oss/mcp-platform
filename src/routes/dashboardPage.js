@@ -261,11 +261,20 @@
         0 0 0 4px rgba(34, 197, 94, 0.13);
     }
 
-    .system-card strong {
-      display: block;
-      margin-top: 8px;
-      font-size: 12px;
-    }
+ .developer-credit {
+  display: block;
+  margin-bottom: 12px;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.system-card strong {
+  display: block;
+  margin-top: 8px;
+  font-size: 12px;
+}
 
     .main-area {
       min-height: 100vh;
@@ -1010,135 +1019,157 @@
     }
 
     @media (max-width: 1280px) {
-      .metrics-grid {
-        grid-template-columns:
-          repeat(3, minmax(0, 1fr));
-      }
+  .metrics-grid {
+    grid-template-columns:
+      repeat(3, minmax(0, 1fr));
+  }
 
-      .campaigns-grid {
-        grid-template-columns:
-          repeat(2, minmax(0, 1fr));
-      }
-    }
+  .campaigns-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+}
 
-    @media (max-width: 1020px) {
-      .sidebar {
-        transform: translateX(-100%);
-      }
+@media (max-width: 1020px) {
+  .sidebar {
+    transform: translateX(-100%);
+  }
 
-      .sidebar.open {
-        transform: translateX(0);
-      }
+  .sidebar.open {
+    transform: translateX(0);
+  }
 
-      .sidebar-overlay.visible {
-        display: block;
-      }
+  .sidebar-overlay.visible {
+    display: block;
+  }
 
-      .main-area {
-        margin-left: 0;
-      }
+  .main-area {
+    margin-left: 0;
+  }
 
-      .mobile-menu-button {
-        display: grid;
-      }
+  .mobile-menu-button {
+    display: grid;
+  }
 
-      .dashboard-row {
-        grid-template-columns: 1fr;
-      }
-    }
+  .dashboard-row {
+    grid-template-columns: 1fr;
+  }
+}
 
-    @media (max-width: 780px) {
-      .topbar {
-        padding: 11px 16px;
-      }
+@media (max-width: 780px) {
+  .topbar {
+    padding: 11px 16px;
+  }
 
-      .ai-button {
-        width: 42px;
-        padding: 0;
-        justify-content: center;
-      }
+  .ai-button {
+    width: 42px;
+    padding: 0;
+    justify-content: center;
+  }
 
-      .ai-button .ai-label,
-      .ai-button span:last-child {
-        display: none;
-      }
+  .ai-button .ai-label,
+  .ai-button span:last-child {
+    display: none;
+  }
 
-      .content {
-        padding: 20px 15px 45px;
-      }
+  .content {
+    padding: 20px 15px 45px;
+  }
 
-      .welcome-panel {
-        align-items: stretch;
-        flex-direction: column;
-      }
+  .welcome-panel {
+    align-items: stretch;
+    flex-direction: column;
+  }
 
-      .period-panel {
-        align-items: stretch;
-        flex-wrap: wrap;
-      }
+  .period-panel {
+    width: 100%;
+    display: grid;
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+    align-items: end;
+    gap: 12px;
+  }
 
-      .period-panel .field {
-        flex: 1;
-      }
+  .period-panel .field {
+    width: 100%;
+    min-width: 0;
+  }
 
-      .period-panel .field input {
-        width: 100%;
-        min-width: 130px;
-      }
+  .period-panel .field input {
+    width: 100%;
+    min-width: 0;
+  }
 
-      .period-panel .primary-button {
-        flex: 1;
-        min-width: 120px;
-      }
+  .period-panel .primary-button {
+    width: 100%;
+    min-width: 0;
+    grid-column: 1 / -1;
+  }
 
-      .metrics-grid {
-        grid-template-columns:
-          repeat(2, minmax(0, 1fr));
-      }
+  .metrics-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
 
-      .section-header {
-        align-items: stretch;
-        flex-direction: column;
-      }
+  .section-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
 
-      .campaign-controls {
-        width: 100%;
-      }
+  .campaign-controls {
+    width: 100%;
+  }
 
-      .search-box {
-        flex: 1;
-      }
+  .search-box {
+    flex: 1;
+  }
 
-      .search-box input {
-        width: 100%;
-      }
-    }
+  .search-box input {
+    width: 100%;
+  }
+}
 
-    @media (max-width: 580px) {
-      .page-heading p {
-        display: none;
-      }
+@media (max-width: 580px) {
+  .page-heading p {
+    display: none;
+  }
 
-      .metrics-grid,
-      .campaigns-grid,
-      .scope-summary {
-        grid-template-columns: 1fr;
-      }
+  .period-panel {
+    grid-template-columns: 1fr;
+  }
 
-      .metric-card {
-        min-height: 125px;
-      }
+  .period-panel .primary-button {
+    grid-column: auto;
+  }
 
-      .campaign-controls {
-        display: grid;
-        grid-template-columns: 1fr;
-      }
+  .welcome-panel {
+    gap: 18px;
+  }
 
-      .compact-select {
-        width: 100%;
-      }
-    }
-  </style>
+  .field input {
+    min-width: 0;
+  }
+
+  .metrics-grid,
+  .campaigns-grid,
+  .scope-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .metric-card {
+    min-height: 125px;
+  }
+
+  .campaign-controls {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .compact-select {
+    width: 100%;
+  }
+}
+</style>
 </head>
 
 <body>
@@ -1226,20 +1257,24 @@
             <span class="navigation-text">
               Assistente de IA
             </span>
-            <span class="navigation-status">Futuro</span>
+            <span class="navigation-status">Em construção</span>
           </button>
         </div>
       </nav>
 
       <div class="sidebar-footer">
         <div class="system-card">
-          <div class="system-status">
-            <span class="status-dot"></span>
-            <span>Sistema disponível</span>
-          </div>
+  <span class="developer-credit">
+    Desenvolvido por Henrique Rodrigues
+  </span>
 
-          <strong>Central v3.0</strong>
-        </div>
+  <div class="system-status">
+    <span class="status-dot"></span>
+    <span>Sistema disponível</span>
+  </div>
+
+  <strong>Central v3.0</strong>
+</div>
       </div>
     </aside>
 
@@ -1276,7 +1311,7 @@
           >
             <span>✦</span>
             <span class="ai-label">Assistente de IA</span>
-            <span>Futuro</span>
+            <span>Em construção</span>
           </button>
         </div>
       </header>
