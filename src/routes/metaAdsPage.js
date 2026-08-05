@@ -1127,13 +1127,65 @@ export function metaAdsPage() {
     }
 
     .sidebar-overlay {
-      position: fixed;
-      inset: 0;
-      z-index: 35;
-      display: none;
-      background: rgba(15, 23, 42, 0.55);
-    }
+  position: fixed;
+  inset: 0;
+  z-index: 35;
+  display: none;
+  background: rgba(15, 23, 42, 0.55);
+}
 
+.image-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 30px;
+  background: rgba(0,0,0,.82);
+  backdrop-filter: blur(6px);
+}
+
+.image-modal.open {
+  display: flex;
+}
+
+.image-modal-content {
+  max-width: 92vw;
+  max-height: 92vh;
+  text-align: center;
+}
+
+.image-modal-content img {
+  max-width: 100%;
+  max-height: 85vh;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.45);
+}
+
+.image-modal-content p {
+  margin-top: 12px;
+  color: #fff;
+  font-size: 14px;
+}
+
+.image-modal-close {
+  position: absolute;
+  top: 22px;
+  right: 28px;
+  width: 46px;
+  height: 46px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255,255,255,.12);
+  color: #fff;
+  font-size: 28px;
+  cursor: pointer;
+}
+
+.image-modal-close:hover {
+  background: rgba(255,255,255,.22);
+}
     @media (max-width: 1280px) {
       .metrics-grid {
         grid-template-columns:
