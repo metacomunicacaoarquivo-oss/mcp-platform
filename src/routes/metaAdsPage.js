@@ -1830,7 +1830,32 @@ export function metaAdsPage() {
             ></div>
           </article>
         </section>
-      </main>
+           </main>
+    </div>
+  </div>
+
+  <div
+    class="image-modal"
+    id="imageModal"
+    aria-hidden="true"
+  >
+    <button
+      type="button"
+      class="image-modal-close"
+      id="imageModalClose"
+      aria-label="Fechar imagem"
+    >
+      ×
+    </button>
+
+    <div class="image-modal-content">
+      <img
+        id="imageModalPreview"
+        src=""
+        alt="Visualização ampliada do conteúdo"
+      >
+
+      <p id="imageModalCaption"></p>
     </div>
   </div>
 
