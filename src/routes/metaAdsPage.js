@@ -3269,15 +3269,6 @@ export function metaAdsPage() {
           "&until=" +
           encodeURIComponent(until);
 
-        const today =
-          getTodayDate();
-
-        const todayQuery =
-          "?since=" +
-          encodeURIComponent(today) +
-          "&until=" +
-          encodeURIComponent(today);
-
         const [
           dashboardResponse,
           adsResponse,
@@ -3296,7 +3287,7 @@ export function metaAdsPage() {
 
           fetch(
             "/meta-ads/ads" +
-            todayQuery,
+            selectedPeriodQuery,
             {
               headers: {
                 Accept: "application/json"
