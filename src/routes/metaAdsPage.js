@@ -662,6 +662,24 @@ export function metaAdsPage() {
   border-radius: 10px;
 }
 
+.campaign-image-trigger {
+  cursor: pointer;
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.campaign-image-trigger:hover {
+  transform: scale(1.04);
+  box-shadow:
+    0 8px 18px rgba(16, 24, 40, 0.18);
+}
+
+.campaign-image-trigger:focus-visible {
+  outline: 3px solid rgba(37, 99, 235, 0.28);
+  outline-offset: 3px;
+}
+
 .campaign-thumbnail img {
   width: 100%;
   height: 100%;
@@ -2276,7 +2294,24 @@ export function metaAdsPage() {
                   (
                     campaign.cover?.url
                       ? (
-                          '<div class="campaign-thumbnail">' +
+                          '<div' +
+                            ' class="campaign-thumbnail campaign-image-trigger"' +
+                            ' data-image-url="' +
+                            escapeHtml(
+                              campaign.cover.url
+                            ) +
+                            '"' +
+                            ' data-image-title="' +
+                            escapeHtml(
+                              campaign.name ||
+                              "Campanha"
+                            ) +
+                            '"' +
+                            ' role="button"' +
+                            ' tabindex="0"' +
+                            ' aria-label="Ampliar imagem da campanha"' +
+                          '>' +
+
                             '<img' +
                               ' src="' +
                               escapeHtml(
@@ -2286,6 +2321,7 @@ export function metaAdsPage() {
                               ' alt="Imagem da campanha"' +
                               ' loading="lazy"' +
                             '>' +
+
                           '</div>'
                         )
                       : (
@@ -3583,6 +3619,146 @@ export function metaAdsPage() {
       function () {
         sidebar.classList.remove("open");
         sidebarOverlay.classList.remove("visible");
+      }
+    );
+
+    const imageModal =
+      document.getElementById(
+        "imageModal"
+      );
+
+    const imageModalPreview =
+      document.getElementById(
+        "imageModalPreview"
+      );
+
+    const imageModalCaption =
+      document.getElementById(
+        "imageModalCaption"
+      );
+
+    const imageModalClose =
+      document.getElementById(
+        "imageModalClose"
+      );
+
+    function openImageModal(
+      imageUrl,
+      imageTitle
+    ) {
+      if (!imageUrl) {
+        return;
+      }
+
+      imageModalPreview.src =
+        imageUrl;
+
+      imageModalCaption.textContent =
+        imageTitle || "";
+
+      imageModal.classList.add(
+        "open"
+      );
+
+      imageModal.setAttribute(
+        "aria-hidden",
+        "false"
+      );
+
+      document.body.style.overflow =
+        "hidden";
+    }
+
+    function closeImageModal() {
+      imageModal.classList.remove(
+        "open"
+      );
+
+      imageModal.setAttribute(
+        "aria-hidden",
+        "true"
+      );
+
+      imageModalPreview.src = "";
+
+      imageModalCaption.textContent =
+        "";
+
+      document.body.style.overflow =
+        "";
+    }
+
+    campaignsTable.addEventListener(
+      "click",
+      function (event) {
+        const trigger =
+          event.target.closest(
+            ".campaign-image-trigger"
+          );
+
+        if (!trigger) {
+          return;
+        }
+
+        openImageModal(
+          trigger.dataset.imageUrl,
+          trigger.dataset.imageTitle
+        );
+      }
+    );
+
+    campaignsTable.addEventListener(
+      "keydown",
+      function (event) {
+        const trigger =
+          event.target.closest(
+            ".campaign-image-trigger"
+          );
+
+        if (
+          !trigger ||
+          (
+            event.key !== "Enter" &&
+            event.key !== " "
+          )
+        ) {
+          return;
+        }
+
+        event.preventDefault();
+
+        openImageModal(
+          trigger.dataset.imageUrl,
+          trigger.dataset.imageTitle
+        );
+      }
+    );
+
+    imageModalClose.addEventListener(
+      "click",
+      closeImageModal
+    );
+
+    imageModal.addEventListener(
+      "click",
+      function (event) {
+        if (event.target === imageModal) {
+          closeImageModal();
+        }
+      }
+    );
+
+    document.addEventListener(
+      "keydown",
+      function (event) {
+        if (
+          event.key === "Escape" &&
+          imageModal.classList.contains(
+            "open"
+          )
+        ) {
+          closeImageModal();
+        }
       }
     );
 
