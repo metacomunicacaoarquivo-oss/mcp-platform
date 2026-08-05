@@ -857,6 +857,78 @@ export function metaAdsPage() {
   }
 }
 
+.daily-summary-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.daily-summary-card {
+  min-width: 0;
+  padding: 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-large);
+  box-shadow: var(--shadow);
+}
+
+.daily-summary-card span {
+  display: block;
+  color: var(--text-soft);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.daily-summary-card strong {
+  display: block;
+  margin-top: 12px;
+  overflow: hidden;
+  font-size: clamp(18px, 2vw, 27px);
+  line-height: 1.15;
+  letter-spacing: -0.04em;
+  white-space: nowrap;
+}
+
+.daily-account-table table {
+  min-width: 520px;
+}
+
+.daily-ad-name {
+  min-width: 300px;
+}
+
+.daily-ad-name strong {
+  display: block;
+  color: var(--text);
+  font-size: 11px;
+}
+
+.daily-ad-name span {
+  display: block;
+  max-width: 330px;
+  margin-top: 5px;
+  overflow: hidden;
+  color: var(--text-light);
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 1020px) {
+  .daily-summary-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .daily-summary-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
     .status-badge {
       display: inline-flex;
       align-items: center;
@@ -1248,29 +1320,45 @@ export function metaAdsPage() {
           </span>
         </div>
 
-       <nav class="tabs">
-  <button
-    type="button"
-    class="tab-button active"
-    data-section="overview"
-  >
-    Visão geral
-  </button>
+              <nav class="tabs">
+          <button
+            type="button"
+            class="tab-button active"
+            data-section="overview"
+          >
+            Visão geral
+          </button>
 
-  <button
-    type="button"
-    class="tab-button"
-    data-section="ranking"
-  >
-    Ranking
-  </button>
+          <button
+            type="button"
+            class="tab-button"
+            data-section="daily-spend"
+          >
+            Gasto diário
+          </button>
 
-  <!--
-    Abas preservadas no código para uso futuro:
-    Campanhas, Conjuntos, Anúncios,
-    Criativos e Municípios.
-  -->
-</nav>
+          <button
+            type="button"
+            class="tab-button"
+            data-section="account-balance"
+          >
+            Saldo da conta
+          </button>
+
+          <button
+            type="button"
+            class="tab-button"
+            data-section="ranking"
+          >
+            Ranking
+          </button>
+
+          <!--
+            Abas preservadas no código para uso futuro:
+            Campanhas, Conjuntos, Anúncios,
+            Criativos e Municípios.
+          -->
+        </nav>
 
         <section
   class="section-content active"
@@ -1410,6 +1498,83 @@ export function metaAdsPage() {
 
         <section
           class="section-content"
+          id="section-daily-spend"
+        >
+          <div
+            class="daily-summary-grid"
+            id="dailySummary"
+          ></div>
+
+          <article class="panel">
+            <div class="panel-header">
+              <div class="panel-title">
+                <h3>Gasto total diário da conta</h3>
+
+                <p>
+                  Valor investido pela conta em cada dia
+                  do período selecionado.
+                </p>
+              </div>
+            </div>
+
+            <div
+              class="table-wrapper daily-account-table"
+              id="dailyAccountTable"
+            ></div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-header">
+              <div class="panel-title">
+                <h3>Gasto diário por anúncio</h3>
+
+                <p>
+                  Anúncios organizados do maior gasto
+                  para o menor.
+                </p>
+              </div>
+            </div>
+
+            <div
+              class="table-wrapper"
+              id="dailyAdsTable"
+            ></div>
+          </article>
+        </section>
+
+        <section
+          class="section-content"
+          id="section-account-balance"
+        >
+          <article class="panel">
+            <div class="panel-header">
+              <div class="panel-title">
+                <h3>Saldo da conta</h3>
+
+                <p>
+                  Monitoramento do saldo e previsão
+                  de duração.
+                </p>
+              </div>
+            </div>
+
+            <div class="empty-state">
+              <div>
+                <strong>
+                  Saldo da conta em preparação
+                </strong>
+
+                <span>
+                  A integração do saldo será realizada
+                  na próxima etapa.
+                </span>
+              </div>
+            </div>
+          </article>
+        </section>
+
+        <section
+          class="section-content"
           id="section-ranking"
         >
           <article class="panel">
@@ -1456,13 +1621,17 @@ export function metaAdsPage() {
   </div>
 
   <script>
-    const state = {
+       const state = {
       campaigns: [],
       summary: {},
       ranking: {},
-      geography: {}
-    };
+      geography: {},
 
+      daily: {
+        account: [],
+        ads: []
+      }
+    };
     const sidebar =
       document.getElementById("sidebar");
 
@@ -1520,6 +1689,19 @@ export function metaAdsPage() {
     const creativesSummary =
       document.getElementById("creativesSummary");
 
+          const dailySummary =
+      document.getElementById("dailySummary");
+
+    const dailyAccountTable =
+      document.getElementById(
+        "dailyAccountTable"
+      );
+
+    const dailyAdsTable =
+      document.getElementById(
+        "dailyAdsTable"
+      );
+
     function escapeHtml(value) {
       return String(value ?? "")
         .replace(/&/g, "&amp;")
@@ -1529,7 +1711,7 @@ export function metaAdsPage() {
         .replace(/'/g, "&#039;");
     }
 
-    function formatNumber(value) {
+        function formatNumber(value) {
       return new Intl.NumberFormat(
         "pt-BR"
       ).format(Number(value || 0));
@@ -1543,6 +1725,27 @@ export function metaAdsPage() {
           currency: "BRL"
         }
       ).format(Number(value || 0));
+    }
+
+    function formatDate(value) {
+      if (!value) {
+        return "Data não disponível";
+      }
+
+      const parts =
+        String(value).split("-");
+
+      if (parts.length !== 3) {
+        return String(value);
+      }
+
+      return (
+        parts[2] +
+        "/" +
+        parts[1] +
+        "/" +
+        parts[0]
+      );
     }
 
     function formatPercentage(value) {
@@ -2382,21 +2585,246 @@ export function metaAdsPage() {
         "</article>";
     }
 
- function renderAll() {
-  renderMetrics(state.summary);
+     function renderDailySpend(daily) {
+      const account =
+        Array.isArray(daily?.account)
+          ? daily.account
+          : [];
 
-  renderFilteredCampaigns();
+      const ads =
+        Array.isArray(daily?.ads)
+          ? daily.ads
+          : [];
 
-  renderRanking(state.ranking);
+      const totalSpend =
+        account.reduce(
+          function (total, item) {
+            return (
+              total +
+              Number(item.spend || 0)
+            );
+          },
+          0
+        );
 
-  renderMunicipalities(
-    state.campaigns
-  );
+      const daysWithSpend =
+        account.filter(
+          function (item) {
+            return Number(item.spend || 0) > 0;
+          }
+        ).length;
 
-  renderSummaryCards();
-}
+      const averageDailySpend =
+        daysWithSpend > 0
+          ? totalSpend / daysWithSpend
+          : 0;
 
-    async function loadData(
+      const adsWithSpend =
+        ads.filter(
+          function (item) {
+            return Number(item.spend || 0) > 0;
+          }
+        );
+
+      dailySummary.innerHTML =
+        '<article class="daily-summary-card">' +
+          "<span>Gasto no período</span>" +
+          "<strong>" +
+            formatCurrency(totalSpend) +
+          "</strong>" +
+        "</article>" +
+
+        '<article class="daily-summary-card">' +
+          "<span>Média diária</span>" +
+          "<strong>" +
+            formatCurrency(
+              averageDailySpend
+            ) +
+          "</strong>" +
+        "</article>" +
+
+        '<article class="daily-summary-card">' +
+          "<span>Dias com gasto</span>" +
+          "<strong>" +
+            formatNumber(daysWithSpend) +
+          "</strong>" +
+        "</article>" +
+
+        '<article class="daily-summary-card">' +
+          "<span>Anúncios com gasto</span>" +
+          "<strong>" +
+            formatNumber(
+              new Set(
+                adsWithSpend.map(
+                  function (item) {
+                    return item.adId;
+                  }
+                )
+              ).size
+            ) +
+          "</strong>" +
+        "</article>";
+
+      if (!account.length) {
+        dailyAccountTable.innerHTML =
+          '<div class="empty-state">' +
+            "<div>" +
+              "<strong>Gasto diário indisponível</strong>" +
+              "<span>Não há dados para o período.</span>" +
+            "</div>" +
+          "</div>";
+      } else {
+        dailyAccountTable.innerHTML =
+          "<table>" +
+            "<thead>" +
+              "<tr>" +
+                "<th>Data</th>" +
+                "<th>Gasto total da conta</th>" +
+              "</tr>" +
+            "</thead>" +
+            "<tbody>" +
+              account
+                .map(function (item) {
+                  return (
+                    "<tr>" +
+                      "<td>" +
+                        escapeHtml(
+                          formatDate(item.date)
+                        ) +
+                      "</td>" +
+
+                      "<td>" +
+                        formatCurrency(
+                          item.spend
+                        ) +
+                      "</td>" +
+                    "</tr>"
+                  );
+                })
+                .join("") +
+            "</tbody>" +
+          "</table>";
+      }
+
+      const orderedAds =
+        adsWithSpend
+          .slice()
+          .sort(
+            function (itemA, itemB) {
+              return (
+                Number(itemB.spend || 0) -
+                Number(itemA.spend || 0)
+              );
+            }
+          );
+
+      if (!orderedAds.length) {
+        dailyAdsTable.innerHTML =
+          '<div class="empty-state">' +
+            "<div>" +
+              "<strong>Nenhum anúncio com gasto</strong>" +
+              "<span>Não houve investimento no período.</span>" +
+            "</div>" +
+          "</div>";
+
+        return;
+      }
+
+      dailyAdsTable.innerHTML =
+        "<table>" +
+          "<thead>" +
+            "<tr>" +
+              "<th>Data</th>" +
+              "<th>Anúncio</th>" +
+              "<th>Gasto</th>" +
+              "<th>Visualizações</th>" +
+              "<th>Alcance</th>" +
+              "<th>Cliques</th>" +
+              "<th>Seguidores</th>" +
+            "</tr>" +
+          "</thead>" +
+
+          "<tbody>" +
+            orderedAds
+              .map(function (item) {
+                return (
+                  "<tr>" +
+                    "<td>" +
+                      escapeHtml(
+                        formatDate(item.date)
+                      ) +
+                    "</td>" +
+
+                    '<td class="daily-ad-name">' +
+                      "<strong>" +
+                        escapeHtml(
+                          item.adName ||
+                          "Anúncio sem nome"
+                        ) +
+                      "</strong>" +
+
+                      "<span>" +
+                        escapeHtml(
+                          item.campaignName ||
+                          "Campanha"
+                        ) +
+                      "</span>" +
+                    "</td>" +
+
+                    "<td>" +
+                      formatCurrency(
+                        item.spend
+                      ) +
+                    "</td>" +
+
+                    "<td>" +
+                      formatNumber(
+                        item.views
+                      ) +
+                    "</td>" +
+
+                    "<td>" +
+                      formatNumber(
+                        item.reach
+                      ) +
+                    "</td>" +
+
+                    "<td>" +
+                      formatNumber(
+                        item.clicks
+                      ) +
+                    "</td>" +
+
+                    "<td>" +
+                      formatNumber(
+                        item.followers
+                      ) +
+                    "</td>" +
+                  "</tr>"
+                );
+              })
+              .join("") +
+          "</tbody>" +
+        "</table>";
+    }
+
+    function renderAll() {
+      renderMetrics(state.summary);
+
+      renderFilteredCampaigns();
+
+      renderDailySpend(state.daily);
+
+      renderRanking(state.ranking);
+
+      renderMunicipalities(
+        state.campaigns
+      );
+
+      renderSummaryCards();
+    }
+
+       async function loadData(
       since,
       until
     ) {
@@ -2408,45 +2836,86 @@ export function metaAdsPage() {
       );
 
       try {
-        const endpoint =
-          "/meta-ads/dashboard" +
+        const query =
           "?since=" +
           encodeURIComponent(since) +
           "&until=" +
           encodeURIComponent(until);
 
-        const response =
-          await fetch(endpoint, {
-            headers: {
-              Accept: "application/json"
-            },
-            cache: "no-store"
-          });
+        const [
+          dashboardResponse,
+          adsResponse
+        ] = await Promise.all([
+          fetch(
+            "/meta-ads/dashboard" + query,
+            {
+              headers: {
+                Accept: "application/json"
+              },
+              cache: "no-store"
+            }
+          ),
 
-        const result =
-          await response.json();
+          fetch(
+            "/meta-ads/ads" + query,
+            {
+              headers: {
+                Accept: "application/json"
+              },
+              cache: "no-store"
+            }
+          )
+        ]);
+
+        const [
+          dashboardResult,
+          adsResult
+        ] = await Promise.all([
+          dashboardResponse.json(),
+          adsResponse.json()
+        ]);
 
         if (
-          !response.ok ||
-          !result.success
+          !dashboardResponse.ok ||
+          !dashboardResult.success
         ) {
           throw new Error(
-            result.error ||
-            "Não foi possível carregar os dados."
+            dashboardResult.error ||
+            "Não foi possível carregar o painel."
+          );
+        }
+
+        if (
+          !adsResponse.ok ||
+          !adsResult.success
+        ) {
+          throw new Error(
+            adsResult.error ||
+            "Não foi possível carregar o gasto diário."
           );
         }
 
         state.campaigns =
-          result.data?.campaigns || [];
+          dashboardResult.data
+            ?.campaigns || [];
 
         state.summary =
-          result.data?.summary || {};
+          dashboardResult.data
+            ?.summary || {};
 
         state.ranking =
-          result.data?.ranking || {};
+          dashboardResult.data
+            ?.ranking || {};
 
         state.geography =
-          result.data?.geography || {};
+          dashboardResult.data
+            ?.geography || {};
+
+        state.daily =
+          adsResult.data?.daily || {
+            account: [],
+            ads: []
+          };
 
         renderAll();
 
@@ -2460,34 +2929,47 @@ export function metaAdsPage() {
           3000
         );
       } catch (error) {
-  state.campaigns = [];
-  state.summary = {};
-  state.ranking = {};
-  state.geography = {};
+        state.campaigns = [];
+        state.summary = {};
+        state.ranking = {};
+        state.geography = {};
 
-  metricsGrid.innerHTML = "";
+        state.daily = {
+          account: [],
+          ads: []
+        };
 
-  campaignsTable.innerHTML =
-    '<div class="empty-state">' +
-      "<div>" +
-        "<strong>Não foi possível carregar os dados</strong>" +
-        "<span>" +
-          "Atualize o token da Meta e tente novamente." +
-        "</span>" +
-      "</div>" +
-    "</div>";
+        metricsGrid.innerHTML = "";
 
-  rankingTable.innerHTML =
-    campaignsTable.innerHTML;
+        campaignsTable.innerHTML =
+          '<div class="empty-state">' +
+            "<div>" +
+              "<strong>Não foi possível carregar os dados</strong>" +
+              "<span>" +
+                "Atualize o token da Meta e tente novamente." +
+              "</span>" +
+            "</div>" +
+          "</div>";
 
-  municipalitiesTable.innerHTML =
-    campaignsTable.innerHTML;
+        rankingTable.innerHTML =
+          campaignsTable.innerHTML;
 
-  setFeedback(
-    "error",
-    error.message ||
-    "Ocorreu um erro ao carregar os dados."
-  );
+        municipalitiesTable.innerHTML =
+          campaignsTable.innerHTML;
+
+        dailyAccountTable.innerHTML =
+          campaignsTable.innerHTML;
+
+        dailyAdsTable.innerHTML =
+          campaignsTable.innerHTML;
+
+        dailySummary.innerHTML = "";
+
+        setFeedback(
+          "error",
+          error.message ||
+          "Ocorreu um erro ao carregar os dados."
+        );
       } finally {
         updateButton.disabled = false;
       }
