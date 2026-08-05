@@ -46,6 +46,34 @@ export async function getMetaCreatives(
     );
   }
 
+  function getCreativeVideoId(
+    creative
+  ) {
+    const objectStorySpec =
+      creative?.object_story_spec || {};
+
+    const assetFeedSpec =
+      creative?.asset_feed_spec || {};
+
+    const videoFromStory =
+      objectStorySpec.video_data
+        ?.video_id ||
+      objectStorySpec.template_data
+        ?.video_id ||
+      null;
+
+    const videoFromAssetFeed =
+      assetFeedSpec.videos?.[0]
+        ?.video_id ||
+      null;
+
+    return (
+      videoFromStory ||
+      videoFromAssetFeed ||
+      null
+    );
+  }
+  
   const creativesById = new Map();
 
   for (const ad of ads) {
@@ -71,17 +99,36 @@ export async function getMetaCreatives(
       continue;
     }
 
-    creativesById.set(creative.id, {
-      id: creative.id,
-      name: creative.name || null,
-      thumbnailUrl: creative.thumbnail_url || null,
-      imageUrl: creative.image_url || null,
+       creativesById.set(creative.id, {
+      id:
+        creative.id,
+
+      name:
+        creative.name || null,
+
+      thumbnailUrl:
+        creative.thumbnail_url || null,
+
+      imageUrl:
+        creative.image_url || null,
+
+      videoId:
+        getCreativeVideoId(
+          creative
+        ),
+
       effectiveObjectStoryId:
-        creative.effective_object_story_id || null,
+        creative.effective_object_story_id ||
+        null,
+
       objectStorySpec:
-        creative.object_story_spec || null,
+        creative.object_story_spec ||
+        null,
+
       assetFeedSpec:
-        creative.asset_feed_spec || null,
+        creative.asset_feed_spec ||
+        null,
+
       ads: [linkedAd]
     });
   }
