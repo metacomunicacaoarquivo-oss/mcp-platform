@@ -3090,15 +3090,6 @@ export function metaAdsPage() {
             "</article>" +
 
             '<article class="balance-metric">' +
-              "<span>Limite da conta</span>" +
-              "<strong>" +
-                formatCurrency(
-                  financial.spendCap
-                ) +
-              "</strong>" +
-            "</article>" +
-
-            '<article class="balance-metric">' +
               "<span>Total gasto</span>" +
               "<strong>" +
                 formatCurrency(
