@@ -2294,22 +2294,48 @@ export function metaAdsPage() {
                   (
                     campaign.cover?.url
                       ? (
-                          '<div' +
+                                                    '<div' +
                             ' class="campaign-thumbnail campaign-image-trigger"' +
-                            ' data-image-url="' +
+
+                            ' data-media-type="' +
                             escapeHtml(
-                              campaign.cover.url
+                              campaign.cover.type ||
+                              "image"
                             ) +
                             '"' +
+
+                            ' data-image-url="' +
+                            escapeHtml(
+                              campaign.cover.url ||
+                              ""
+                            ) +
+                            '"' +
+
+                            ' data-video-url="' +
+                            escapeHtml(
+                              campaign.cover.videoUrl ||
+                              ""
+                            ) +
+                            '"' +
+
                             ' data-image-title="' +
                             escapeHtml(
                               campaign.name ||
                               "Campanha"
                             ) +
                             '"' +
+
                             ' role="button"' +
                             ' tabindex="0"' +
-                            ' aria-label="Ampliar imagem da campanha"' +
+
+                            ' aria-label="' +
+                            (
+                              campaign.cover.type ===
+                              "video"
+                                ? "Reproduzir vídeo da campanha"
+                                : "Ampliar imagem da campanha"
+                            ) +
+                            '"' +
                           '>' +
 
                             '<img' +
@@ -3642,19 +3668,97 @@ export function metaAdsPage() {
         "imageModalClose"
       );
 
-    function openImageModal(
-      imageUrl,
-      imageTitle
+        function openImageModal(
+      media
     ) {
-      if (!imageUrl) {
+      if (!media) {
         return;
       }
 
-      imageModalPreview.src =
-        imageUrl;
-
       imageModalCaption.textContent =
-        imageTitle || "";
+        media.title || "";
+
+      const existingVideo =
+        document.getElementById(
+          "imageModalVideo"
+        );
+
+      if (
+        media.type === "video" &&
+        media.videoUrl
+      ) {
+        imageModalPreview.src = "";
+
+        imageModalPreview.style.display =
+          "none";
+
+        let video =
+          existingVideo;
+
+        if (!video) {
+          video =
+            document.createElement(
+              "video"
+            );
+
+          video.id =
+            "imageModalVideo";
+
+          video.controls = true;
+          video.autoplay = true;
+          video.playsInline = true;
+
+          video.style.maxWidth =
+            "100%";
+
+          video.style.maxHeight =
+            "85vh";
+
+          video.style.margin =
+            "0 auto";
+
+          video.style.borderRadius =
+            "12px";
+
+          video.style.boxShadow =
+            "0 20px 60px rgba(0, 0, 0, 0.45)";
+
+          imageModalPreview.after(
+            video
+          );
+        }
+
+        video.src =
+          media.videoUrl;
+
+        video.style.display =
+          "block";
+
+        video.load();
+
+        video.play().catch(
+          function () {
+            // O usuário pode iniciar pelo controle.
+          }
+        );
+      } else {
+        if (existingVideo) {
+          existingVideo.pause();
+          existingVideo.removeAttribute(
+            "src"
+          );
+          existingVideo.load();
+
+          existingVideo.style.display =
+            "none";
+        }
+
+        imageModalPreview.style.display =
+          "block";
+
+        imageModalPreview.src =
+          media.url || "";
+      }
 
       imageModal.classList.add(
         "open"
@@ -3669,7 +3773,7 @@ export function metaAdsPage() {
         "hidden";
     }
 
-    function closeImageModal() {
+        function closeImageModal() {
       imageModal.classList.remove(
         "open"
       );
@@ -3679,7 +3783,28 @@ export function metaAdsPage() {
         "true"
       );
 
+      const video =
+        document.getElementById(
+          "imageModalVideo"
+        );
+
+      if (video) {
+        video.pause();
+
+        video.removeAttribute(
+          "src"
+        );
+
+        video.load();
+
+        video.style.display =
+          "none";
+      }
+
       imageModalPreview.src = "";
+
+      imageModalPreview.style.display =
+        "block";
 
       imageModalCaption.textContent =
         "";
@@ -3700,10 +3825,19 @@ export function metaAdsPage() {
           return;
         }
 
-        openImageModal(
-          trigger.dataset.imageUrl,
-          trigger.dataset.imageTitle
-        );
+               openImageModal({
+          type:
+            trigger.dataset.mediaType,
+
+          url:
+            trigger.dataset.imageUrl,
+
+          videoUrl:
+            trigger.dataset.videoUrl,
+
+          title:
+            trigger.dataset.imageTitle
+        });
       }
     );
 
@@ -3727,10 +3861,19 @@ export function metaAdsPage() {
 
         event.preventDefault();
 
-        openImageModal(
-          trigger.dataset.imageUrl,
-          trigger.dataset.imageTitle
-        );
+                openImageModal({
+          type:
+            trigger.dataset.mediaType,
+
+          url:
+            trigger.dataset.imageUrl,
+
+          videoUrl:
+            trigger.dataset.videoUrl,
+
+          title:
+            trigger.dataset.imageTitle
+        });
       }
     );
 
