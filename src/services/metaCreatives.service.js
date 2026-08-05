@@ -165,9 +165,23 @@ export async function getMetaCreatives(
         videoResponse.thumbnails
           ?.data?.[0]?.uri ||
         null;
-    } catch (error) {
+       } catch (error) {
       creative.videoUrl = null;
-      creative.videoThumbnail = null;
+
+      creative.videoThumbnail =
+        null;
+
+      creative.videoError = {
+        message:
+          error.message ||
+          "Não foi possível consultar o vídeo.",
+
+        status:
+          error.status || null,
+
+        meta:
+          error.meta || null
+      };
     }
   }
 
@@ -184,8 +198,24 @@ export async function getMetaCreatives(
       withThumbnail: creatives.filter(
         (creative) => Boolean(creative.thumbnailUrl)
       ).length,
-      withImage: creatives.filter(
-        (creative) => Boolean(creative.imageUrl)
+            withImage: creatives.filter(
+        (creative) =>
+          Boolean(creative.imageUrl)
+      ).length,
+
+      withVideoId: creatives.filter(
+        (creative) =>
+          Boolean(creative.videoId)
+      ).length,
+
+      withVideoUrl: creatives.filter(
+        (creative) =>
+          Boolean(creative.videoUrl)
+      ).length,
+
+      withVideoError: creatives.filter(
+        (creative) =>
+          Boolean(creative.videoError)
       ).length
     },
 
