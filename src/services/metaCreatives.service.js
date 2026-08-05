@@ -133,9 +133,43 @@ export async function getMetaCreatives(
     });
   }
 
-  const creatives = Array.from(
+    const creatives = Array.from(
     creativesById.values()
   );
+
+  for (const creative of creatives) {
+    if (!creative.videoId) {
+      creative.videoUrl = null;
+      creative.videoThumbnail = null;
+      continue;
+    }
+
+    try {
+      const videoResponse =
+        await metaRequest({
+          path:
+            creative.videoId,
+
+          accessToken,
+
+          params: {
+            fields:
+              "source,thumbnails"
+          }
+        });
+
+      creative.videoUrl =
+        videoResponse.source || null;
+
+      creative.videoThumbnail =
+        videoResponse.thumbnails
+          ?.data?.[0]?.uri ||
+        null;
+    } catch (error) {
+      creative.videoUrl = null;
+      creative.videoThumbnail = null;
+    }
+  }
 
   return {
     filters: {
