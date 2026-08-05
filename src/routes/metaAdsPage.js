@@ -3522,15 +3522,6 @@ export function metaAdsPage() {
       defaultPeriod.since,
       defaultPeriod.until
     );
-        window.setInterval(
-      function () {
-        loadData(
-          sinceInput.value,
-          untilInput.value
-        );
-      },
-      300000
-    );
   </script>
 </body>
 </html>`;
