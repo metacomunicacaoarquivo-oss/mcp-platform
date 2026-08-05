@@ -1237,7 +1237,11 @@ export function metaAdsPage() {
         grid-column: auto;
       }
 
-      .metrics-grid,
+           .metrics-grid {
+        grid-template-columns:
+          repeat(2, minmax(0, 1fr));
+      }
+
       .placeholder-grid {
         grid-template-columns: 1fr;
       }
