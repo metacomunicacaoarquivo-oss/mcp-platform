@@ -929,6 +929,121 @@ export function metaAdsPage() {
   }
 }
 
+.balance-status-card {
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-medium);
+}
+
+.balance-status-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px;
+  border-bottom: 1px solid var(--border);
+}
+
+.balance-status-header strong {
+  display: block;
+  font-size: 15px;
+}
+
+.balance-status-header span {
+  display: block;
+  margin-top: 4px;
+  color: var(--text-soft);
+  font-size: 10px;
+}
+
+.balance-light {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  background: var(--text-light);
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 6px rgba(152, 162, 179, 0.14);
+}
+
+.balance-status-card.green
+.balance-light {
+  background: var(--success);
+  box-shadow:
+    0 0 0 6px rgba(22, 163, 74, 0.14);
+}
+
+.balance-status-card.yellow
+.balance-light {
+  background: var(--warning);
+  box-shadow:
+    0 0 0 6px rgba(217, 119, 6, 0.14);
+}
+
+.balance-status-card.red
+.balance-light {
+  background: var(--danger);
+  box-shadow:
+    0 0 0 6px rgba(220, 38, 38, 0.14);
+}
+
+.balance-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--border);
+}
+
+.balance-metric {
+  min-width: 0;
+  padding: 18px;
+  background: var(--surface);
+}
+
+.balance-metric span {
+  display: block;
+  color: var(--text-soft);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.balance-metric strong {
+  display: block;
+  margin-top: 10px;
+  overflow: hidden;
+  font-size: clamp(17px, 2vw, 25px);
+  letter-spacing: -0.04em;
+  white-space: nowrap;
+}
+
+.balance-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  padding: 13px 18px;
+  color: var(--text-light);
+  font-size: 9px;
+  background: var(--surface-soft);
+}
+
+@media (max-width: 780px) {
+  .balance-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+
+  .balance-footer {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 520px) {
+  .balance-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
     .status-badge {
       display: inline-flex;
       align-items: center;
@@ -1542,7 +1657,7 @@ export function metaAdsPage() {
           </article>
         </section>
 
-        <section
+               <section
           class="section-content"
           id="section-account-balance"
         >
@@ -1552,22 +1667,25 @@ export function metaAdsPage() {
                 <h3>Saldo da conta</h3>
 
                 <p>
-                  Monitoramento do saldo e previsão
-                  de duração.
+                  Situação atual, consumo diário
+                  e previsão de duração do saldo.
                 </p>
               </div>
             </div>
 
-            <div class="empty-state">
-              <div>
-                <strong>
-                  Saldo da conta em preparação
-                </strong>
+            <div
+              id="accountBalanceContent"
+            >
+              <div class="empty-state">
+                <div>
+                  <strong>
+                    Carregando saldo da conta
+                  </strong>
 
-                <span>
-                  A integração do saldo será realizada
-                  na próxima etapa.
-                </span>
+                  <span>
+                    Aguarde a consulta à Meta.
+                  </span>
+                </div>
               </div>
             </div>
           </article>
@@ -1621,7 +1739,7 @@ export function metaAdsPage() {
   </div>
 
   <script>
-       const state = {
+         const state = {
       campaigns: [],
       summary: {},
       ranking: {},
@@ -1630,7 +1748,9 @@ export function metaAdsPage() {
       daily: {
         account: [],
         ads: []
-      }
+      },
+
+      accountStatus: null
     };
     const sidebar =
       document.getElementById("sidebar");
@@ -1702,6 +1822,11 @@ export function metaAdsPage() {
         "dailyAdsTable"
       );
 
+    const accountBalanceContent =
+      document.getElementById(
+        "accountBalanceContent"
+      );
+
     function escapeHtml(value) {
       return String(value ?? "")
         .replace(/&/g, "&amp;")
@@ -1727,7 +1852,7 @@ export function metaAdsPage() {
       ).format(Number(value || 0));
     }
 
-    function formatDate(value) {
+        function formatDate(value) {
       if (!value) {
         return "Data não disponível";
       }
@@ -1746,6 +1871,59 @@ export function metaAdsPage() {
         "/" +
         parts[0]
       );
+    }
+
+    function getTodayDate() {
+      const currentDate =
+        new Date();
+
+      const year =
+        currentDate.getFullYear();
+
+      const month =
+        String(
+          currentDate.getMonth() + 1
+        ).padStart(2, "0");
+
+      const day =
+        String(
+          currentDate.getDate()
+        ).padStart(2, "0");
+
+      return (
+        year +
+        "-" +
+        month +
+        "-" +
+        day
+      );
+    }
+
+    function formatDateTime(value) {
+      if (!value) {
+        return "Não disponível";
+      }
+
+      const date =
+        new Date(value);
+
+      if (
+        Number.isNaN(
+          date.getTime()
+        )
+      ) {
+        return String(value);
+      }
+
+      return new Intl.DateTimeFormat(
+        "pt-BR",
+        {
+          dateStyle: "short",
+          timeStyle: "short",
+          timeZone:
+            "America/Sao_Paulo"
+        }
+      ).format(date);
     }
 
     function formatPercentage(value) {
@@ -2808,12 +2986,161 @@ export function metaAdsPage() {
         "</table>";
     }
 
-    function renderAll() {
+    function renderAccountStatus(
+      accountStatus
+    ) {
+      if (!accountStatus) {
+        accountBalanceContent.innerHTML =
+          '<div class="empty-state">' +
+            "<div>" +
+              "<strong>Saldo indisponível</strong>" +
+              "<span>" +
+                "Não foi possível consultar a conta." +
+              "</span>" +
+            "</div>" +
+          "</div>";
+
+        return;
+      }
+
+      const account =
+        accountStatus.account || {};
+
+      const financial =
+        accountStatus.financial || {};
+
+      const today =
+        accountStatus.today || {};
+
+      const trafficLight =
+        String(
+          financial.trafficLight ||
+          "neutral"
+        ).toLowerCase();
+
+      const daysRemaining =
+        financial.estimatedDaysRemaining;
+
+      const daysText =
+        daysRemaining === null ||
+        daysRemaining === undefined
+          ? "Não se aplica"
+          : formatNumber(daysRemaining);
+
+      accountBalanceContent.innerHTML =
+        '<div class="balance-status-card ' +
+          escapeHtml(trafficLight) +
+        '">' +
+
+          '<div class="balance-status-header">' +
+            '<span class="balance-light"></span>' +
+
+            "<div>" +
+              "<strong>" +
+                escapeHtml(
+                  financial.statusLabel ||
+                  "Situação da conta"
+                ) +
+              "</strong>" +
+
+              "<span>" +
+                escapeHtml(
+                  account.name ||
+                  "Conta Meta Ads"
+                ) +
+              "</span>" +
+            "</div>" +
+          "</div>" +
+
+          '<div class="balance-grid">' +
+
+            '<article class="balance-metric">' +
+              "<span>Saldo atual</span>" +
+              "<strong>" +
+                formatCurrency(
+                  financial.balance
+                ) +
+              "</strong>" +
+            "</article>" +
+
+            '<article class="balance-metric">' +
+              "<span>Gasto de hoje</span>" +
+              "<strong>" +
+                formatCurrency(
+                  financial.amountSpentToday ??
+                  today.spend
+                ) +
+              "</strong>" +
+            "</article>" +
+
+            '<article class="balance-metric">' +
+              "<span>Média diária</span>" +
+              "<strong>" +
+                formatCurrency(
+                  financial.averageDailySpend
+                ) +
+              "</strong>" +
+            "</article>" +
+
+            '<article class="balance-metric">' +
+              "<span>Dias restantes</span>" +
+              "<strong>" +
+                escapeHtml(daysText) +
+              "</strong>" +
+            "</article>" +
+
+            '<article class="balance-metric">' +
+              "<span>Limite da conta</span>" +
+              "<strong>" +
+                formatCurrency(
+                  financial.spendCap
+                ) +
+              "</strong>" +
+            "</article>" +
+
+            '<article class="balance-metric">' +
+              "<span>Total gasto</span>" +
+              "<strong>" +
+                formatCurrency(
+                  financial.amountSpent
+                ) +
+              "</strong>" +
+            "</article>" +
+
+          "</div>" +
+
+          '<div class="balance-footer">' +
+            "<span>" +
+              (
+                account.isPrepayAccount
+                  ? "Conta pré-paga"
+                  : "Conta pós-paga"
+              ) +
+            "</span>" +
+
+            "<span>" +
+              "Última atualização: " +
+              escapeHtml(
+                formatDateTime(
+                  accountStatus.updatedAt
+                )
+              ) +
+            "</span>" +
+          "</div>" +
+
+        "</div>";
+    }
+
+       function renderAll() {
       renderMetrics(state.summary);
 
       renderFilteredCampaigns();
 
       renderDailySpend(state.daily);
+
+      renderAccountStatus(
+        state.accountStatus
+      );
 
       renderRanking(state.ranking);
 
@@ -2824,7 +3151,7 @@ export function metaAdsPage() {
       renderSummaryCards();
     }
 
-       async function loadData(
+           async function loadData(
       since,
       until
     ) {
@@ -2832,22 +3159,33 @@ export function metaAdsPage() {
 
       setFeedback(
         "loading",
-        "Carregando informações do período selecionado..."
+        "Carregando informações atualizadas..."
       );
 
       try {
-        const query =
+        const selectedPeriodQuery =
           "?since=" +
           encodeURIComponent(since) +
           "&until=" +
           encodeURIComponent(until);
 
+        const today =
+          getTodayDate();
+
+        const todayQuery =
+          "?since=" +
+          encodeURIComponent(today) +
+          "&until=" +
+          encodeURIComponent(today);
+
         const [
           dashboardResponse,
-          adsResponse
+          adsResponse,
+          accountStatusResponse
         ] = await Promise.all([
           fetch(
-            "/meta-ads/dashboard" + query,
+            "/meta-ads/dashboard" +
+            selectedPeriodQuery,
             {
               headers: {
                 Accept: "application/json"
@@ -2857,7 +3195,18 @@ export function metaAdsPage() {
           ),
 
           fetch(
-            "/meta-ads/ads" + query,
+            "/meta-ads/ads" +
+            todayQuery,
+            {
+              headers: {
+                Accept: "application/json"
+              },
+              cache: "no-store"
+            }
+          ),
+
+          fetch(
+            "/meta-ads/account-status",
             {
               headers: {
                 Accept: "application/json"
@@ -2869,10 +3218,12 @@ export function metaAdsPage() {
 
         const [
           dashboardResult,
-          adsResult
+          adsResult,
+          accountStatusResult
         ] = await Promise.all([
           dashboardResponse.json(),
-          adsResponse.json()
+          adsResponse.json(),
+          accountStatusResponse.json()
         ]);
 
         if (
@@ -2891,7 +3242,17 @@ export function metaAdsPage() {
         ) {
           throw new Error(
             adsResult.error ||
-            "Não foi possível carregar o gasto diário."
+            "Não foi possível carregar o gasto de hoje."
+          );
+        }
+
+        if (
+          !accountStatusResponse.ok ||
+          !accountStatusResult.success
+        ) {
+          throw new Error(
+            accountStatusResult.error ||
+            "Não foi possível carregar o saldo da conta."
           );
         }
 
@@ -2917,11 +3278,14 @@ export function metaAdsPage() {
             ads: []
           };
 
+        state.accountStatus =
+          accountStatusResult.data || null;
+
         renderAll();
 
         setFeedback(
           "success",
-          "Dados atualizados para o período selecionado."
+          "Dados atualizados com sucesso."
         );
 
         window.setTimeout(
@@ -2933,6 +3297,7 @@ export function metaAdsPage() {
         state.summary = {};
         state.ranking = {};
         state.geography = {};
+        state.accountStatus = null;
 
         state.daily = {
           account: [],
@@ -2964,6 +3329,9 @@ export function metaAdsPage() {
           campaignsTable.innerHTML;
 
         dailySummary.innerHTML = "";
+
+        accountBalanceContent.innerHTML =
+          campaignsTable.innerHTML;
 
         setFeedback(
           "error",
@@ -3062,6 +3430,15 @@ export function metaAdsPage() {
     loadData(
       defaultPeriod.since,
       defaultPeriod.until
+    );
+        window.setInterval(
+      function () {
+        loadData(
+          sinceInput.value,
+          untilInput.value
+        );
+      },
+      300000
     );
   </script>
 </body>
