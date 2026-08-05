@@ -8,6 +8,7 @@ import { metaCreatives } from "./routes/metaCreatives.js";
 import { metaAdsDashboard } from "./routes/metaAdsDashboard.js";
 import { dashboardPage } from "./routes/dashboardPage.js";
 import { metaAdsPage } from "./routes/metaAdsPage.js";
+import { metaAdsAccountStatus } from "./routes/metaAdsAccount.js";
 
 export default {
   async fetch(request, env) {
@@ -69,6 +70,13 @@ export default {
       return metaAdsDashboard(env, request);
     }
 
+    if (
+      url.pathname ===
+      "/meta-ads/account-status"
+    ) {
+      return metaAdsAccountStatus(env);
+    }
+    
     return Response.json(
       {
         success: false,
