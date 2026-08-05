@@ -1223,7 +1223,7 @@ export function metaAdsPage() {
       }
     }
 
-    @media (max-width: 520px) {
+       @media (max-width: 520px) {
       .topbar-title p,
       .topbar-badge {
         display: none;
@@ -1240,6 +1240,98 @@ export function metaAdsPage() {
       .metrics-grid,
       .placeholder-grid {
         grid-template-columns: 1fr;
+      }
+
+      #campaignsTable {
+        overflow: visible;
+        border: 0;
+        border-radius: 0;
+      }
+
+      #campaignsTable table,
+      #campaignsTable tbody,
+      #campaignsTable tr,
+      #campaignsTable td {
+        display: block;
+        width: 100%;
+      }
+
+      #campaignsTable table {
+        min-width: 0;
+      }
+
+      #campaignsTable thead {
+        display: none;
+      }
+
+      #campaignsTable tbody {
+        display: grid;
+        gap: 14px;
+      }
+
+      #campaignsTable tbody tr {
+        overflow: hidden;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-medium);
+        box-shadow: var(--shadow);
+      }
+
+      #campaignsTable td {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 12px 14px;
+        text-align: right;
+        border-bottom: 1px solid var(--border);
+      }
+
+      #campaignsTable td::before {
+        content: attr(data-label);
+        color: var(--text-soft);
+        font-size: 10px;
+        font-weight: 800;
+        text-align: left;
+      }
+
+      #campaignsTable td:last-child {
+        border-bottom: 0;
+      }
+
+      #campaignsTable .campaign-cell {
+        display: block;
+        min-height: 88px;
+        padding: 14px;
+        text-align: left;
+        background: var(--surface-soft);
+      }
+
+      #campaignsTable .campaign-cell::before {
+        display: none;
+      }
+
+      #campaignsTable .campaign-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      #campaignsTable .campaign-thumbnail {
+        width: 64px;
+        height: 64px;
+      }
+
+      #campaignsTable .campaign-text strong {
+        max-width: none;
+        white-space: normal;
+        overflow: visible;
+        text-overflow: unset;
+        line-height: 1.35;
+      }
+
+      #campaignsTable .campaign-text span {
+        margin-top: 6px;
       }
     }
   </style>
@@ -2081,7 +2173,7 @@ export function metaAdsPage() {
       return "Tocantins";
     }
 
-    function createCampaignRows(campaigns) {
+       function createCampaignRows(campaigns) {
       return campaigns
         .map(function (campaign) {
           const performance =
@@ -2096,59 +2188,71 @@ export function metaAdsPage() {
 
           return (
             "<tr>" +
-              '<td class="campaign-cell">' +
-  '<div class="campaign-info">' +
 
-    (
-      campaign.cover?.url
-        ? (
-            '<div class="campaign-thumbnail">' +
-              '<img' +
-                ' src="' +
-                escapeHtml(
-                  campaign.cover.url
-                ) +
-                '"' +
-                ' alt="Imagem da campanha"' +
-                ' loading="lazy"' +
-              '>' +
-            '</div>'
-          )
-        : (
-            '<div class="campaign-thumbnail">' +
-              '<div class="campaign-thumbnail-placeholder">' +
-                '◉' +
-              '</div>' +
-            '</div>'
-          )
-    ) +
+              '<td class="campaign-cell" data-label="Campanha">' +
+                '<div class="campaign-info">' +
 
-    '<div class="campaign-text">' +
-      "<strong>" +
-        escapeHtml(
-          campaign.name ||
-          "Campanha sem nome"
-        ) +
-      "</strong>" +
+                  (
+                    campaign.cover?.url
+                      ? (
+                          '<div class="campaign-thumbnail">' +
+                            '<img' +
+                              ' src="' +
+                              escapeHtml(
+                                campaign.cover.url
+                              ) +
+                              '"' +
+                              ' alt="Imagem da campanha"' +
+                              ' loading="lazy"' +
+                            '>' +
+                          '</div>'
+                        )
+                      : (
+                          '<div class="campaign-thumbnail">' +
+                            '<div class="campaign-thumbnail-placeholder">' +
+                              '◉' +
+                            '</div>' +
+                          '</div>'
+                        )
+                  ) +
 
-      "<span>" +
-        escapeHtml(
-          getCampaignLocation(campaign)
-        ) +
-      "</span>" +
-    "</div>" +
-  "</div>" +
-"</td>" +
+                  '<div class="campaign-text">' +
+                    "<strong>" +
+                      escapeHtml(
+                        campaign.name ||
+                        "Campanha sem nome"
+                      ) +
+                    "</strong>" +
 
-              "<td>" +
+                    "<span>" +
+                      escapeHtml(
+                        getCampaignLocation(
+                          campaign
+                        )
+                      ) +
+                    "</span>" +
+                  "</div>" +
+
+                "</div>" +
+              "</td>" +
+
+              '<td data-label="Situação">' +
                 '<span class="status-badge ' +
-                  (active ? "active" : "ended") +
+                  (
+                    active
+                      ? "active"
+                      : "ended"
+                  ) +
                 '">' +
-                  (active ? "Ativa" : "Encerrada") +
+                  (
+                    active
+                      ? "Ativa"
+                      : "Encerrada"
+                  ) +
                 "</span>" +
               "</td>" +
 
-              "<td>" +
+              '<td data-label="Âmbito">' +
                 '<span class="scope-badge">' +
                   (
                     scope === "municipal"
@@ -2158,48 +2262,49 @@ export function metaAdsPage() {
                 "</span>" +
               "</td>" +
 
-              "<td>" +
+              '<td data-label="Investimento">' +
                 formatCurrency(
                   performance.spend
                 ) +
               "</td>" +
 
-              "<td>" +
+              '<td data-label="Alcance">' +
                 formatNumber(
                   performance.reach
                 ) +
               "</td>" +
 
-              "<td>" +
+              '<td data-label="Visualizações">' +
                 formatNumber(
                   performance.views
                 ) +
               "</td>" +
 
-              "<td>" +
+              '<td data-label="Cliques">' +
                 formatNumber(
                   performance.clicks
                 ) +
               "</td>" +
 
-              "<td>" +
+              '<td data-label="Engajamentos">' +
                 formatNumber(
                   performance.engagement
                 ) +
               "</td>" +
 
-              "<td>" +
+              '<td data-label="Cobertura">' +
                 formatPercentage(
                   campaign.ibge
                     ?.coveragePercentage
                 ) +
               "</td>" +
+
             "</tr>"
           );
         })
         .join("");
     }
-
+    
     function renderCampaignTable(
       element,
       campaigns
