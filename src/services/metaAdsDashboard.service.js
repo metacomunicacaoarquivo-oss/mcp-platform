@@ -411,7 +411,7 @@ function createCreativeMaps(
   const creativeByCreativeId = new Map();
 
   for (const creative of creatives) {
-    const normalizedCreative = {
+        const normalizedCreative = {
       id:
         creative.id || null,
 
@@ -426,6 +426,21 @@ function createCreativeMaps(
       imageUrl:
         creative.imageUrl ||
         creative.image_url ||
+        null,
+
+      videoId:
+        creative.videoId ||
+        creative.video_id ||
+        null,
+
+      videoUrl:
+        creative.videoUrl ||
+        creative.video_url ||
+        null,
+
+      videoThumbnail:
+        creative.videoThumbnail ||
+        creative.video_thumbnail ||
         null,
 
       effectiveObjectStoryId:
@@ -673,7 +688,7 @@ function buildCampaigns({
       ibge:
         geographicData.ibge,
 
-      cover: mainAd
+           cover: mainAd
         ? {
             adId:
               mainAd.id,
@@ -681,13 +696,33 @@ function buildCampaigns({
             adName:
               mainAd.name,
 
+            type:
+              mainAd.creative?.videoUrl
+                ? "video"
+                : "image",
+
             url:
+              mainAd.creative?.imageUrl ||
+              mainAd.creative
+                ?.videoThumbnail ||
               mainAd.coverUrl,
+
+            thumbnail:
+              mainAd.creative
+                ?.videoThumbnail ||
+              mainAd.creative
+                ?.imageUrl ||
+              mainAd.coverUrl,
+
+            videoUrl:
+              mainAd.creative
+                ?.videoUrl ||
+              null,
 
             selectionRule:
               deliveredAdsWithCover.length
                 ? "Anúncio entregue com maior alcance no período"
-                : "Primeiro anúncio com imagem disponível"
+                : "Primeiro anúncio com mídia disponível"
           }
         : null,
 
