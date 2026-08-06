@@ -152,7 +152,7 @@ export async function getMetaCreatives(
 
           params: {
             fields:
-              "attachments{media_type,target,subattachments},full_picture"
+            "attachments{media_type,target,media,subattachments},full_picture"
           }
         });
 
@@ -181,8 +181,23 @@ export async function getMetaCreatives(
             "video"
         );
 
-      creative.videoId =
+            creative.videoId =
         videoAttachment?.target?.id ||
+        null;
+
+      creative.videoUrl =
+        videoAttachment
+          ?.media?.source ||
+        null;
+
+      creative.videoThumbnail =
+        videoAttachment
+          ?.media?.image?.src ||
+        null;
+
+      creative.videoPermalink =
+        videoAttachment
+          ?.target?.url ||
         null;
     } catch (error) {
       creative.storyLookupError = {
@@ -193,9 +208,16 @@ export async function getMetaCreatives(
     }
   }
 
-  if (!creative.videoId) {
+    if (
+    !creative.videoId &&
+    !creative.videoUrl
+  ) {
     creative.videoUrl = null;
     creative.videoThumbnail = null;
+    continue;
+  }
+
+  if (creative.videoUrl) {
     continue;
   }
 
