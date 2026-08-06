@@ -138,43 +138,101 @@ export async function getMetaCreatives(
   );
 
   for (const creative of creatives) {
-    if (!creative.videoId) {
-      creative.videoUrl = null;
-      creative.videoThumbnail = null;
-      continue;
-    }
-
+  if (
+    !creative.videoId &&
+    creative.effectiveObjectStoryId
+  ) {
     try {
-      const videoResponse =
+      const storyResponse =
         await metaRequest({
           path:
-            creative.videoId,
+            creative.effectiveObjectStoryId,
 
           accessToken,
 
           params: {
             fields:
-              "source,thumbnails"
+              "attachments{media_type,target,subattachments},full_picture"
           }
         });
 
-      creative.videoUrl =
-        videoResponse.source || null;
+      const attachments =
+        storyResponse.attachments
+          ?.data || [];
 
-      creative.videoThumbnail =
-        videoResponse.thumbnails
-          ?.data?.[0]?.uri ||
+      const mainAttachment =
+        attachments[0] || null;
+
+      const subattachments =
+        mainAttachment
+          ?.subattachments
+          ?.data || [];
+
+      const videoAttachment =
+        [
+          mainAttachment,
+          ...subattachments
+        ].find(
+          (attachment) =>
+            String(
+              attachment?.media_type ||
+              ""
+            ).toLowerCase() ===
+            "video"
+        );
+
+      creative.videoId =
+        videoAttachment?.target?.id ||
         null;
-       } catch (error) {
-      creative.videoUrl = null;
-
-      creative.videoThumbnail =
-        null;
-
-      creative.videoError = {
+    } catch (error) {
+      creative.storyLookupError = {
         message:
           error.message ||
-          "Não foi possível consultar o vídeo.",
+          "Erro ao consultar a publicação."
+      };
+    }
+  }
+
+  if (!creative.videoId) {
+    creative.videoUrl = null;
+    creative.videoThumbnail = null;
+    continue;
+  }
+
+  try {
+    const videoResponse =
+      await metaRequest({
+        path:
+          creative.videoId,
+
+        accessToken,
+
+        params: {
+          fields:
+            "source,thumbnails"
+        }
+      });
+
+    creative.videoUrl =
+      videoResponse.source || null;
+
+    creative.videoThumbnail =
+      videoResponse.thumbnails
+        ?.data?.[0]?.uri ||
+      null;
+
+    creative.videoError =
+      null;
+  } catch (error) {
+    creative.videoUrl = null;
+
+    creative.videoThumbnail =
+      null;
+
+    creative.videoError = {
+      message:
+        error.message ||
+        "Não foi possível consultar o vídeo.",
 
         status:
           error.status || null,
@@ -213,10 +271,27 @@ export async function getMetaCreatives(
           Boolean(creative.videoUrl)
       ).length,
 
-      withVideoError: creatives.filter(
+           withVideoError: creatives.filter(
         (creative) =>
           Boolean(creative.videoError)
-      ).length
+      ).length,
+
+      withStoryLookupError:
+        creatives.filter(
+          (creative) =>
+            Boolean(
+              creative.storyLookupError
+            )
+        ).length,
+
+      withEffectiveStory:
+        creatives.filter(
+          (creative) =>
+            Boolean(
+              creative
+                .effectiveObjectStoryId
+            )
+        ).length
     },
 
     creatives
