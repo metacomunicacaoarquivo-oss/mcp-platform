@@ -32,7 +32,7 @@ export async function getMetaAdsCampaigns(
           "daily_budget",
           "lifetime_budget"
         ].join(","),
-        limit: 100
+        limit: 500
       }
     }),
 
@@ -63,13 +63,23 @@ export async function getMetaAdsCampaigns(
     ])
   );
 
-  const campaigns = (campaignsResponse.data || []).map(
-    (campaign) => {
+  const campaigns =
+  (campaignsResponse.data || [])
+    .map((campaign) => {
       const insights =
-        insightsByCampaign.get(campaign.id) || null;
+        insightsByCampaign.get(
+          campaign.id
+        ) || null;
 
-      const spend = Number(insights?.spend || 0);
-      const impressions = Number(insights?.impressions || 0);
+      const spend =
+        Number(
+          insights?.spend || 0
+        );
+
+      const impressions =
+        Number(
+          insights?.impressions || 0
+        );
 
       return {
         ...campaign,
@@ -81,14 +91,42 @@ export async function getMetaAdsCampaigns(
 
         delivery: {
           deliveredInPeriod:
-            spend > 0 || impressions > 0,
+            spend > 0 ||
+            impressions > 0,
 
           spend,
           impressions
         }
       };
-    }
-  );
+    })
+    .filter((campaign) => {
+      const startDate =
+        String(
+          campaign.start_time ||
+          campaign.created_time ||
+          ""
+        ).slice(0, 10);
+
+      const stopDate =
+        campaign.stop_time
+          ? String(
+              campaign.stop_time
+            ).slice(0, 10)
+          : null;
+
+      const startedBeforePeriodEnds =
+        !startDate ||
+        startDate <= until;
+
+      const endedAfterPeriodStarts =
+        !stopDate ||
+        stopDate >= since;
+
+      return (
+        startedBeforePeriodEnds &&
+        endedAfterPeriodStarts
+      );
+    });
 
   return {
     period: {
