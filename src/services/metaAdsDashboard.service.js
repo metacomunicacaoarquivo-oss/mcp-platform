@@ -914,14 +914,20 @@ export async function getMetaAdsDashboard(
     );
 
   const campaigns =
-    buildCampaigns({
-      campaigns:
-        campaignsData.campaigns || [],
+  buildCampaigns({
+    campaigns:
+      campaignsData.campaigns || [],
 
-      adSetsByCampaignId,
+    adSetsByCampaignId,
 
-      tocantinsPopulationData
-    });
+    tocantinsPopulationData
+  }).filter(
+    (campaign) =>
+      Number(
+        campaign.summary
+          ?.deliveredAds || 0
+      ) > 0
+  );
 
   const rankingResult =
     generateMetaAdsRanking(campaigns);
