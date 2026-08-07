@@ -921,13 +921,7 @@ export async function getMetaAdsDashboard(
     adSetsByCampaignId,
 
     tocantinsPopulationData
-  }).filter(
-    (campaign) =>
-      Number(
-        campaign.summary
-          ?.deliveredAds || 0
-      ) > 0
-  );
+  });
 
   const rankingResult =
     generateMetaAdsRanking(campaigns);
